@@ -29,6 +29,7 @@ const TOOLBAR_CLASS = 'aufwiederzen-toolbar';
 const ACTIONS_HOST_CLASS = 'aufwiederzen-actions-host';
 const TOOLBAR_BTN_CLASS = 'aufwiederzen-toolbar-btn';
 const DANGER_BUTTON_CLASS = 'aufwiederzen-toolbar-btn--danger';
+const BUSY_BTN_CLASS = 'aufwiederzen-toolbar-btn--busy';
 const OWNED_BTN_ATTR = 'data-aufwiederzen-owned';
 const ADOPTED_BTN_ATTR = 'data-aufwiederzen-adopted';
 const HIDDEN_NATIVE_ATTR = 'data-aufwiederzen-hidden';
@@ -46,7 +47,7 @@ let scanScheduled = false;
 
 /** Post containers awaiting a BLOCK_PROFILE_RESULT from background.ts,
  *  keyed by the requestId sent with the original BLOCK_PROFILE_REQUEST. */
-const pendingBlockRequests = new Map<string, Element>();
+const pendingBlockRequests = new Map<string, { postContainer: Element; blockButton: HTMLButtonElement }>();
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -207,25 +208,32 @@ async function fadeOutAndHide(postContainer: Element): Promise<void> {
  * actual result arrives later via a BLOCK_PROFILE_RESULT message, handled
  * in handleBlockProfileResult below.
  */
-async function performBlock(name: string, profileUrl: string, postContainer: Element): Promise<void> {
+async function performBlock(
+  name: string,
+  profileUrl: string,
+  postContainer: Element,
+  blockButton: HTMLButtonElement,
+): Promise<void> {
   const requestId = generateRequestId();
   console.log(`${LOG_PREFIX} performBlock: requesting block for "${name}" (${requestId})`, profileUrl);
-  pendingBlockRequests.set(requestId, postContainer);
+  pendingBlockRequests.set(requestId, { postContainer, blockButton });
+  setBlockButtonBusy(blockButton, true);
 
   try {
     await chrome.runtime.sendMessage({ type: 'BLOCK_PROFILE_REQUEST', requestId, profileUrl, name });
   } catch (error) {
     console.warn(`${LOG_PREFIX} performBlock: failed to reach background`, error);
     pendingBlockRequests.delete(requestId);
+    setBlockButtonBusy(blockButton, false);
     showToast('Block failed to start', 'error');
   }
 }
 
 async function handleBlockProfileResult(requestId: string, success: boolean, reason?: string): Promise<void> {
-  const postContainer = pendingBlockRequests.get(requestId);
+  const pending = pendingBlockRequests.get(requestId);
   pendingBlockRequests.delete(requestId);
 
-  if (!postContainer) {
+  if (!pending) {
     console.warn(`${LOG_PREFIX} handleBlockProfileResult: no pending request for ${requestId}`);
     return;
   }
@@ -233,9 +241,10 @@ async function handleBlockProfileResult(requestId: string, success: boolean, rea
   if (success) {
     console.log(`${LOG_PREFIX} handleBlockProfileResult: success (${requestId})`);
     showToast('Blocked successfully', 'success');
-    await fadeOutAndHide(postContainer);
+    await fadeOutAndHide(pending.postContainer);
   } else {
     console.warn(`${LOG_PREFIX} handleBlockProfileResult: failed (${requestId})`, reason);
+    setBlockButtonBusy(pending.blockButton, false);
     showToast('Block failed', 'error');
   }
 }
@@ -286,6 +295,37 @@ function createToolbarIcon(name: ToolbarIcon): SVGSVGElement {
   return svg;
 }
 
+function createSpinnerIcon(): SVGSVGElement {
+  const svg = svgEl('svg', {
+    viewBox: '0 0 24 24',
+    width: '16',
+    height: '16',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': '2',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'aria-hidden': 'true',
+    class: 'aufwiederzen-spinner',
+    [ICON_ATTR]: 'true',
+  }) as SVGSVGElement;
+  svg.append(svgEl('path', { d: 'M21 12a9 9 0 1 1-6.219-8.56' }));
+  return svg;
+}
+
+function setBlockButtonBusy(button: HTMLButtonElement, busy: boolean): void {
+  button.disabled = busy;
+  button.classList.toggle(BUSY_BTN_CLASS, busy);
+  button.querySelectorAll(`[${ICON_ATTR}]`).forEach((el) => el.remove());
+  if (busy) {
+    button.setAttribute('aria-busy', 'true');
+    button.append(createSpinnerIcon());
+  } else {
+    button.removeAttribute('aria-busy');
+    button.append(createToolbarIcon('ban'));
+  }
+}
+
 function adoptNativeToolbarButton(button: HTMLElement, icon: ToolbarIcon): void {
   button.classList.add(TOOLBAR_BTN_CLASS);
   button.setAttribute(ADOPTED_BTN_ATTR, 'true');
@@ -312,6 +352,7 @@ function buildOwnedToolbarButton(
   label: string,
   onClick: (button: HTMLButtonElement) => Promise<void>,
   danger = false,
+  persistDisabled = false,
 ): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
@@ -328,7 +369,9 @@ function buildOwnedToolbarButton(
     try {
       await onClick(button);
     } finally {
-      button.disabled = false;
+      if (!persistDisabled) {
+        button.disabled = false;
+      }
     }
   });
   return button;
@@ -349,12 +392,13 @@ function buildBlockButton(postContainer: Element, profile: ProfileRef): HTMLButt
   const button = buildOwnedToolbarButton(
     'ban',
     `Bloquer ${profile.name} (Aufwieder-zen)`,
-    async () => {
+    async (blockButton) => {
       const profileUrl = profile.profileUrl;
       if (!profileUrl) return;
       console.log(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
-      await performBlock(profile.name, profileUrl, postContainer);
+      await performBlock(profile.name, profileUrl, postContainer, blockButton);
     },
+    true,
     true,
   );
   if (!profile.profileUrl) {

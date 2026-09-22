@@ -55,7 +55,7 @@
   filter: none !important;
 }
 
-.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn:hover * {
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn:hover *:not(.aufwiederzen-spinner) {
   background-color: transparent !important;
   box-shadow: none !important;
   transform: none !important;
@@ -94,6 +94,28 @@
   display: block;
   flex-shrink: 0;
   pointer-events: none;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn--busy:disabled {
+  cursor: wait;
+  opacity: 1;
+  color: #b07a76;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn--busy:hover,
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn--busy:hover * {
+  background-color: #ffffff !important;
+}
+
+.aufwiederzen-toolbar svg.aufwiederzen-spinner {
+  animation: aufwiederzen-spin 0.75s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes aufwiederzen-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* LinkedIn wraps Follow/Connect in a column flex (or a wrapping grid),
