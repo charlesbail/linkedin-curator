@@ -7,6 +7,12 @@
    Native "..." / hide buttons are adopted into this flex row so they keep
    LinkedIn's click handlers while sharing our chrome. `all: unset` plus
    !important backgrounds beat LinkedIn's atomic hover styles. */
+/* Original-author Block toolbar stays in the DOM; the popup switch only hides it. */
+html[data-aufwiederzen-original-author-block-enabled='false']
+  [data-aufwiederzen-injected-for='originalAuthor'].aufwiederzen-toolbar {
+  display: none;
+}
+
 .aufwiederzen-toolbar {
   display: inline-flex;
   flex-direction: row;

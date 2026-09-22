@@ -8,6 +8,7 @@
 import { getState, setState, type CuratorState } from '../utils/storage';
 
 const buttonsToggle = document.getElementById('buttons-toggle') as HTMLButtonElement;
+const originalAuthorBlockToggle = document.getElementById('original-author-block-toggle') as HTMLButtonElement;
 const fadeToggle = document.getElementById('fade-toggle') as HTMLButtonElement;
 
 function setSwitchChecked(toggle: HTMLButtonElement, checked: boolean): void {
@@ -20,6 +21,7 @@ function isSwitchChecked(toggle: HTMLButtonElement): boolean {
 
 function renderState(state: CuratorState): void {
   setSwitchChecked(buttonsToggle, state.enableButtonsInFeed);
+  setSwitchChecked(originalAuthorBlockToggle, state.enableBlockOnOriginalAuthor);
   setSwitchChecked(fadeToggle, state.enableFadeAnimation);
 }
 
@@ -42,6 +44,7 @@ function bindSwitch(toggle: HTMLButtonElement, patch: (checked: boolean) => Part
 }
 
 bindSwitch(buttonsToggle, (checked) => ({ enableButtonsInFeed: checked }));
+bindSwitch(originalAuthorBlockToggle, (checked) => ({ enableBlockOnOriginalAuthor: checked }));
 bindSwitch(fadeToggle, (checked) => ({ enableFadeAnimation: checked }));
 
 getState().then(renderState);
