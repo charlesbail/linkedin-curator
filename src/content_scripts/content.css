@@ -19,6 +19,7 @@
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   background-color: #ffffff;
+  margin-right: 4px;
 }
 
 .aufwiederzen-toolbar > .aufwiederzen-toolbar-btn {
@@ -27,8 +28,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 24px;
   margin: 0;
   padding: 0;
   cursor: pointer;
