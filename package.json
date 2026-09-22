@@ -1,0 +1,25 @@
+{
+  "name": "aufwieder-zen",
+  "version": "0.1.0",
+  "description": "Chrome extension (Manifest V3) that curates and calms your LinkedIn feed.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "chrome-extension",
+    "linkedin",
+    "manifest-v3"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.7.1",
+    "@types/chrome": "^0.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}

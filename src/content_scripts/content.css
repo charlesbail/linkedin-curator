@@ -1,0 +1,120 @@
+/* Injected into the LinkedIn feed page.
+   content.ts mirrors the curator state onto <html data-aufwiederzen-*>
+   attributes; feature styles (fade-out animation) should key off those
+   attributes here as they're implemented. */
+
+/* Buttons injected by feedInjector.ts next to a post header's native
+   "..."/hide/follow controls. Reset with `all: unset` first since these
+   elements are injected into LinkedIn's own DOM and would otherwise
+   inherit whatever ambient styles cascade from its atomic CSS classes. */
+.aufwiederzen-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.aufwiederzen-action-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-block;
+  cursor: pointer;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: #ffffff;
+  color: #434649;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.aufwiederzen-action-btn:hover {
+  background-color: #f3f2ef;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.aufwiederzen-action-btn:focus-visible {
+  outline: 2px solid #0a66c2;
+  outline-offset: 1px;
+}
+
+.aufwiederzen-action-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.aufwiederzen-action-btn--danger {
+  color: #b3261e;
+  border-color: rgba(179, 38, 30, 0.35);
+}
+
+.aufwiederzen-action-btn--danger:hover {
+  background-color: #fdecea;
+  border-color: rgba(179, 38, 30, 0.6);
+}
+
+/* "Unfollow (API)" — a secondary/experimental entry point, styled a
+   notch quieter (dashed border) than the primary Unfollow button. */
+.aufwiederzen-action-btn--ghost {
+  border-style: dashed;
+  color: #56585c;
+}
+
+.aufwiederzen-action-btn--ghost:hover {
+  background-color: #f3f2ef;
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Toast notifications (feedInjector.ts) reporting async action
+   success/failure. Fixed to the viewport, top-left, with a maxed-out
+   z-index so they sit above LinkedIn's own overlays/popovers. */
+#aufwiederzen-toast-container {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.aufwiederzen-toast {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  animation: aufwiederzen-toast-in 0.15s ease-out;
+}
+
+.aufwiederzen-toast--success {
+  background-color: #1e7e34;
+}
+
+.aufwiederzen-toast--error {
+  background-color: #b3261e;
+}
+
+@keyframes aufwiederzen-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aufwieder-zen</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <span class="popup__logo" aria-hidden="true">A</span>
+        <div class="popup__heading">
+          <h1 class="popup__title">Aufwieder-zen</h1>
+          <p class="popup__subtitle">LinkedIn feed controls</p>
+        </div>
+      </header>
+
+      <section class="popup__card" aria-label="Feed settings">
+        <div class="popup__row">
+          <div class="popup__row-text">
+            <label class="popup__row-label" for="buttons-toggle">Enable Buttons in Feed</label>
+            <p class="popup__row-desc">Show quick-action buttons on posts</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            id="buttons-toggle"
+            class="switch"
+            aria-checked="false"
+          >
+            <span class="switch__thumb"></span>
+          </button>
+        </div>
+
+        <div class="popup__divider"></div>
+
+        <div class="popup__row">
+          <div class="popup__row-text">
+            <label class="popup__row-label" for="fade-toggle">Enable Fade-out Animation</label>
+            <p class="popup__row-desc">Smoothly fade posts as they're removed</p>
+          </div>
+          <button type="button" role="switch" id="fade-toggle" class="switch" aria-checked="false">
+            <span class="switch__thumb"></span>
+          </button>
+        </div>
+      </section>
+
+      <footer class="popup__footer">
+        <a
+          class="popup__link"
+          href="https://www.linkedin.com/mypreferences/d/blocked-contacts"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View Blocked Contacts
+          <span class="popup__link-arrow" aria-hidden="true">&rarr;</span>
+        </a>
+      </footer>
+    </main>
+    <script type="module" src="popup.ts"></script>
+  </body>
+</html>
