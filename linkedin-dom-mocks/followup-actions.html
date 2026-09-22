@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Follow/Connect + Block layout demo</title>
+  <link rel="stylesheet" href="../src/content_scripts/content.css" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #f3f2ef;
+      padding: 24px;
+      color: #191919;
+    }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    p.note { font-size: 13px; color: #666; margin: 0 0 20px; }
+    .case {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .case h2 { font-size: 13px; margin: 0 0 12px; color: #666; font-weight: 600; }
+
+    /* LinkedIn-like: Follow/Connect lives in a column flex behind display:contents. */
+    ._790ec37f._155affd2 {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    [data-display-contents="true"] { display: contents; }
+
+    /* LinkedIn-like: liked/reshare actor header is a row with start alignment. */
+    .b47b38e7._415b6c0c {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .header-text { flex: 1; line-height: 1.4; padding: 8px 0; }
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      background: transparent;
+      font-size: 18px;
+      cursor: pointer;
+      color: #666;
+    }
+
+    button.f7a37dee {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 0;
+      background: transparent;
+      color: #0a66c2;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 6px 8px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>Original-author Follow/Connect + Block</h1>
+  <p class="note">Block must sit to the right of LinkedIn’s button, whatever the label.</p>
+
+  <div class="case">
+    <h2>Captured live markup — “Se connecter”</h2>
+    <div class="_790ec37f _155affd2 cb61f0f5 d1901be7" componentkey="ac2003ad-9815-4fee-b1a5-c1309c95957d"><div class="_649b9f0b d1901be7" data-display-contents="true"><button class="f7a37dee _1d1ba039 _7643477b c9469db5 _91bbd6b4 ee27a78a _0fd52e77 _5cf7fcec cd77ddbe _871cfd43 a5fd2958 _501f2732 dfaf4f38" type="button" componentkey="ConnectButtonstate:invitation:urn:li:member:4842394_connect" aria-label="Inviter Gregoire MERCIER à rejoindre votre réseau"><span class="_5bb402f1 _5376ce3a _6f6ba678 _501f2732 _7643477b c9469db5 a5fd2958 _799bde51 fb47e245 ee27a78a _0fd52e77 f692c9fd ff6433a6 ae7d882e _335cad85 _525415f9 f2703206 _4a1fe2c8 _2b7c0a3b"><svg xmlns="http://www.w3.org/2000/svg" id="connect-small" fill="currentColor" aria-hidden="true" data-supported-dps="16x16" viewBox="0 0 16 16" data-token-id="414" width="16" height="16" class="c26322bb _57df2c34 _576523d0 _7588a38c _178c3696 adc5e25e"><path d="M9 4a3 3 0 1 1-3-3 3 3 0 0 1 3 3M6.75 8h-1.5A2.25 2.25 0 0 0 3 10.25V15h6v-4.75A2.25 2.25 0 0 0 6.75 8M13 8V6h-1v2h-2v1h2v2h1V9h2V8z"></path></svg><div class="ce463ae0 _91bbd6b4 _6bd3c2e2"><span class="d89a6b59 e66014a6 fe9ec211 ce463ae0 _1c4c93d4 _90bdc3f8 _5bf6fc92 _3f333006 f2091d78 _155affd2 e351d606"><span>Se connecter</span></span></div></span></button><div class="aufwiederzen-actions" data-aufwiederzen-injected-for="originalAuthor"><button type="button" class="aufwiederzen-action-btn aufwiederzen-action-btn--danger" aria-label="Bloquer Gregoire MERCIER (Aufwieder-zen)">Block</button></div></div></div>
+  </div>
+
+  <div class="case">
+    <h2>Shorter label — “Suivre”</h2>
+    <div class="_790ec37f _155affd2 cb61f0f5 d1901be7">
+      <div class="_649b9f0b d1901be7" data-display-contents="true">
+        <button class="f7a37dee" type="button" aria-label="Suivre Jérémy Assayag"><span>Suivre</span></button>
+        <div class="aufwiederzen-actions" data-aufwiederzen-injected-for="originalAuthor">
+          <button type="button" class="aufwiederzen-action-btn aufwiederzen-action-btn--danger">Block</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="case">
+    <h2>Longer label — “Inviter à rejoindre votre réseau”</h2>
+    <div class="_790ec37f _155affd2 cb61f0f5 d1901be7">
+      <div class="_649b9f0b d1901be7" data-display-contents="true">
+        <button class="f7a37dee" type="button" aria-label="Inviter à rejoindre votre réseau"><span>Inviter à rejoindre votre réseau</span></button>
+        <div class="aufwiederzen-actions" data-aufwiederzen-injected-for="originalAuthor">
+          <button type="button" class="aufwiederzen-action-btn aufwiederzen-action-btn--danger">Block</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="case">
+    <h2>Liked/reshare header — Unfollow + Block vertically centered</h2>
+    <div class="b47b38e7 _415b6c0c _1957d19a _05aaee24 _3e0ed175 _6684dfd4 _09ab8b1b _991ffcd1 d1901be7" componentkey="2484d5ed-8471-4b12-8d6f-fc13fada02f9">
+      <span class="header-text">Emmanuel Julliot adore ce contenu</span>
+      <button class="icon-btn" type="button" aria-label="Ouvrir le menu de commandes">⋯</button>
+      <button class="icon-btn" type="button" aria-label="Masquer le post">×</button>
+      <div class="aufwiederzen-actions" data-aufwiederzen-injected-for="author">
+        <button type="button" class="aufwiederzen-action-btn">Unfollow</button>
+        <button type="button" class="aufwiederzen-action-btn aufwiederzen-action-btn--danger">Block</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

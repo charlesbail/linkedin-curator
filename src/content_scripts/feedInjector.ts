@@ -24,6 +24,7 @@ const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
 const PROCESSED_ATTR = 'data-aufwiederzen-injector-processed';
 const INJECTED_MARKER_ATTR = 'data-aufwiederzen-injected-for';
 const ACTIONS_CLASS = 'aufwiederzen-actions';
+const ACTIONS_HOST_CLASS = 'aufwiederzen-actions-host';
 const BUTTON_CLASS = 'aufwiederzen-action-btn';
 const DANGER_BUTTON_CLASS = 'aufwiederzen-action-btn--danger';
 
@@ -233,26 +234,30 @@ async function handleBlockProfileResult(requestId: string, success: boolean, rea
   }
 }
 
-function buildActionButtons(postContainer: Element, profile: ProfileRef): HTMLElement {
+function buildActionButtons(postContainer: Element, profile: ProfileRef, includeUnfollow: boolean): HTMLElement {
   const wrapper = document.createElement('div');
   wrapper.className = ACTIONS_CLASS;
 
-  const unfollowButton = document.createElement('button');
-  unfollowButton.type = 'button';
-  unfollowButton.className = BUTTON_CLASS;
-  unfollowButton.textContent = 'Unfollow';
-  unfollowButton.setAttribute('aria-label', `Ne plus suivre ${profile.name} (Aufwieder-zen)`);
-  unfollowButton.addEventListener('click', async (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (unfollowButton.disabled) return;
-    unfollowButton.disabled = true;
-    try {
-      await performUnfollow(profile, postContainer);
-    } finally {
-      unfollowButton.disabled = false;
-    }
-  });
+  if (includeUnfollow) {
+    const unfollowButton = document.createElement('button');
+    unfollowButton.type = 'button';
+    unfollowButton.className = BUTTON_CLASS;
+    unfollowButton.textContent = 'Unfollow';
+    unfollowButton.setAttribute('aria-label', `Ne plus suivre ${profile.name} (Aufwieder-zen)`);
+    unfollowButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      console.log(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
+      if (unfollowButton.disabled) return;
+      unfollowButton.disabled = true;
+      try {
+        await performUnfollow(profile, postContainer);
+      } finally {
+        unfollowButton.disabled = false;
+      }
+    });
+    wrapper.append(unfollowButton);
+  }
 
   const blockButton = document.createElement('button');
   blockButton.type = 'button';
@@ -268,6 +273,7 @@ function buildActionButtons(postContainer: Element, profile: ProfileRef): HTMLEl
     blockButton.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
+      console.log(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
       if (blockButton.disabled) return;
       blockButton.disabled = true;
       try {
@@ -278,7 +284,7 @@ function buildActionButtons(postContainer: Element, profile: ProfileRef): HTMLEl
     });
   }
 
-  wrapper.append(unfollowButton, blockButton);
+  wrapper.append(blockButton);
   return wrapper;
 }
 
@@ -293,37 +299,59 @@ function findLastNativeActionButton(headerElement: Element): HTMLElement | null 
   return buttons.length > 0 ? (buttons[buttons.length - 1] ?? null) : null;
 }
 
+/**
+ * Tags the nearest real layout parent of a native Follow/Connect/"..."
+ * button. LinkedIn's hashed atomic CSS often uses a column flex (so Block
+ * stacks under long labels) and `align-items: start` on liked/reshare
+ * headers (so Unfollow/Block sit at the top). content.css then forces a
+ * centered horizontal row. `display: contents` shims are skipped so the
+ * class lands on the box that actually lays out the children.
+ */
+function tagActionsLayoutHost(nativeButton: HTMLElement): void {
+  let current: HTMLElement | null = nativeButton.parentElement;
+  while (current) {
+    if (window.getComputedStyle(current).display === 'contents') {
+      current = current.parentElement;
+      continue;
+    }
+    current.classList.add(ACTIONS_HOST_CLASS);
+    return;
+  }
+}
+
 function injectActionButtons(
   postContainer: Element,
   headerElement: Element,
   profile: ProfileRef,
   markerId: string,
+  includeUnfollow: boolean,
 ): void {
   if (headerElement.querySelector(`[${INJECTED_MARKER_ATTR}="${markerId}"]`)) {
     return; // already injected for this header
   }
 
-  const wrapper = buildActionButtons(postContainer, profile);
+  const wrapper = buildActionButtons(postContainer, profile, includeUnfollow);
   wrapper.setAttribute(INJECTED_MARKER_ATTR, markerId);
 
   const lastNativeButton = findLastNativeActionButton(headerElement);
   if (lastNativeButton) {
     lastNativeButton.insertAdjacentElement('afterend', wrapper);
+    tagActionsLayoutHost(lastNativeButton);
   } else {
     headerElement.appendChild(wrapper);
   }
 
-  console.log(`${LOG_PREFIX} injected buttons (${markerId}) for`, profile);
+  console.log(`${LOG_PREFIX} injected buttons (${markerId}, includeUnfollow=${includeUnfollow}) for`, profile);
 }
 
 function processParsedPost(parsed: ParsedLinkedInPost): void {
   if (parsed.author && parsed.authorElement && isPersonAuthor(parsed.author)) {
-    injectActionButtons(parsed.container, parsed.authorElement, parsed.author, 'author');
+    injectActionButtons(parsed.container, parsed.authorElement, parsed.author, 'author', true);
   }
 
   const isReshare = parsed.type === 'repost' || parsed.type === 'liked';
   if (isReshare && parsed.originalAuthor && parsed.originalAuthorElement && isPersonAuthor(parsed.originalAuthor)) {
-    injectActionButtons(parsed.container, parsed.originalAuthorElement, parsed.originalAuthor, 'originalAuthor');
+    injectActionButtons(parsed.container, parsed.originalAuthorElement, parsed.originalAuthor, 'originalAuthor', false);
   }
 }
 
@@ -354,6 +382,7 @@ function scheduleScan(): void {
 
 function removeInjectedButtons(): void {
   document.querySelectorAll(`.${ACTIONS_CLASS}`).forEach((el) => el.remove());
+  document.querySelectorAll(`.${ACTIONS_HOST_CLASS}`).forEach((el) => el.classList.remove(ACTIONS_HOST_CLASS));
   document.querySelectorAll(`[${PROCESSED_ATTR}]`).forEach((el) => el.removeAttribute(PROCESSED_ATTR));
   console.log(`${LOG_PREFIX} removed previously injected buttons`);
 }
