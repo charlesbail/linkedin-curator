@@ -1,0 +1,101 @@
+# Aufwieder-zen — Cursor Rules
+
+Aufwieder-zen is a Chrome Extension that modifies the LinkedIn feed. These rules
+define strict technical boundaries for any code generated or edited in this
+project. Follow them exactly; do not suggest alternatives unless the user
+explicitly asks for a deviation.
+
+## 1. Platform & Manifest
+
+- This is a Chrome Extension built **strictly on Manifest V3**. Never generate
+  Manifest V2 fields (`browser_action`, `background.scripts`/persistent
+  background pages, `page_action`, blocking `webRequest` for network
+  modification, etc.).
+- The Service Worker (`background`) is the only allowed background execution
+  context. Never assume a persistent background page.
+- Keep `manifest.json` as the single source of truth for permissions, content
+  script matches, and entry points. Any new capability requires an explicit
+  permission added there — do not silently rely on undeclared permissions.
+- Only request the minimum permissions needed (`storage`, host permissions for
+  `*.linkedin.com`, etc.). Do not add broad host permissions like `<all_urls>`.
+
+## 2. Language & UI Stack
+
+- **Vanilla TypeScript only** for all logic. Do not introduce React, Vue,
+  Svelte, Angular, JSX/TSX, lit-html, or any other UI framework or templating
+  library.
+- **Plain HTML and CSS only** for UI surfaces (popup, options page, injected
+  UI). No CSS-in-JS, no styled-components, no Tailwind build pipeline, no
+  template engines.
+- DOM construction in TypeScript must use the native DOM APIs
+  (`document.createElement`, `element.append`, etc.) or direct manipulation of
+  static HTML — never a virtual DOM or framework runtime.
+- Prefer small, explicit, strongly-typed functions over generic/dynamic
+  patterns. Enable and respect `strict` mode in `tsconfig.json`.
+
+## 3. Architecture: Strict Separation of Concerns
+
+The codebase is organized into exactly four logical layers under `src/`. Code
+must live in the layer matching its responsibility — never mix
+responsibilities across layers.
+
+- `src/popup/` — **UI and toggles only.** Renders the popup HTML/CSS and wires
+  up user controls (toggles, buttons, settings forms). The popup reads/writes
+  state via `chrome.storage.local` and may send messages to the background
+  service worker. It must never directly query or mutate the LinkedIn page
+  DOM.
+- `src/content_scripts/` — **DOM manipulation and injection only.** Code that
+  runs in the context of `linkedin.com` pages: reading the feed DOM, hiding or
+  reordering posts, injecting UI elements into the page. Content scripts read
+  configuration from `chrome.storage.local` (and/or messages from the
+  background worker) but must not contain business/parsing logic that belongs
+  in `utils`.
+- `src/background/` — **Service Worker for cross-tab orchestration only.**
+  Handles extension lifecycle events (`onInstalled`, `onStartup`), message
+  routing between popup and content scripts, alarms, and any coordination that
+  spans multiple tabs. It must not manipulate the DOM (it has none) and should
+  delegate parsing/business logic to `utils`.
+- `src/utils/` — **Pure parsing/business-logic functions only.** Functions
+  here must be pure (no `chrome.*` API calls, no DOM access, no side effects)
+  wherever possible: input in, output out. This is where feed-item parsing,
+  filtering rules, and data transformations live so they can be shared and
+  unit-tested independently of the browser environment.
+
+When adding a new feature, first decide which layer owns each responsibility
+and place code accordingly. If a function needs both DOM access and parsing
+logic, split it: parsing goes in `utils`, DOM glue stays in
+`content_scripts`.
+
+## 4. State Management
+
+- All persisted extension state (settings, toggles, filter rules, cached feed
+  data) must be stored via `chrome.storage.local`. Do not use
+  `chrome.storage.sync`, `localStorage`, `sessionStorage`, `IndexedDB`, or
+  cookies for extension state.
+- Centralize `chrome.storage.local` access behind typed helper functions
+  (e.g. in `src/utils/storage.ts`) rather than calling
+  `chrome.storage.local.get/set` ad hoc from multiple files. Define a single
+  typed shape for the stored state and reuse it everywhere.
+- Use `chrome.storage.onChanged` to react to state updates across contexts
+  (popup, content script, background) instead of polling.
+
+## 5. Build & Tooling
+
+- The project builds with **Vite** using the `@crxjs/vite-plugin` plugin,
+  configured for a vanilla TypeScript Chrome extension (no framework
+  plugins).
+- TypeScript compiles with a strict `tsconfig.json` (`strict: true`,
+  `noUnusedLocals`, `noUnusedParameters`, etc.). Do not weaken these settings
+  to silence errors — fix the underlying type issue instead.
+- Do not add bundler plugins for frameworks (React/Vue/Svelte plugins, JSX
+  transforms) since none are used in this project.
+
+## 6. General Conventions
+
+- Prefer named exports over default exports for utils and shared modules.
+- Keep DOM selectors for LinkedIn's feed centralized (e.g. a constants file in
+  `utils`) so markup changes only require updates in one place.
+- Never add remote code loading (no `eval`, no fetching and executing remote
+  scripts) — this violates Manifest V3 policy.
+- Do not add comments that merely narrate obvious code; only comment on
+  non-obvious intent, trade-offs, or LinkedIn-DOM-specific quirks.
