@@ -62,18 +62,6 @@
   border-color: rgba(179, 38, 30, 0.6);
 }
 
-/* "Unfollow (API)" — a secondary/experimental entry point, styled a
-   notch quieter (dashed border) than the primary Unfollow button. */
-.aufwiederzen-action-btn--ghost {
-  border-style: dashed;
-  color: #56585c;
-}
-
-.aufwiederzen-action-btn--ghost:hover {
-  background-color: #f3f2ef;
-  border-color: rgba(0, 0, 0, 0.3);
-}
-
 /* Toast notifications (feedInjector.ts) reporting async action
    success/failure. Fixed to the viewport, top-left, with a maxed-out
    z-index so they sit above LinkedIn's own overlays/popovers. */

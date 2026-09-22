@@ -33,12 +33,6 @@ export interface ProfileRef {
   name: string;
   profileUrl: string | null;
   kind: AuthorKind;
-  /** Numeric LinkedIn member id (e.g. from `urn:li:member:676616964`),
-   *  needed to call internal APIs directly. Null when it can't be found —
-   *  most profile links are vanity slugs (`/in/dansaffer/`) that don't
-   *  encode it, so this depends on the id showing up in a nearby
-   *  `componentkey`/`id`/`data-urn` attribute. */
-  memberId: string | null;
 }
 
 /** Structured result of parsing a single feed post. */
@@ -60,10 +54,6 @@ export interface ParsedLinkedInPost {
   /** The header-row element `originalAuthor` was extracted from. Null for
    *  Direct posts, or if no original-author row could be located. */
   originalAuthorElement: Element | null;
-  /** Numeric LinkedIn activity id for this post (e.g. from
-   *  `data-urn="urn:li:activity:7508142094625021952"`), needed to call
-   *  internal APIs directly. Null when it can't be found. */
-  activityId: string | null;
 }
 
 /** Matches LinkedIn's "..." and hide-post buttons, which exist on every
@@ -113,64 +103,6 @@ function classifyAuthorUrl(href: string | null): AuthorKind {
 
 function matchesAny(text: string, patterns: readonly RegExp[]): boolean {
   return patterns.some((pattern) => pattern.test(text));
-}
-
-/** Matches a numeric LinkedIn member id, either as a full URN
- *  (`urn:li:member:676616964`) or a bare `memberId` key, as seen in
- *  `componentkey`/`id` attributes on actor-card wrapper elements. */
-const MEMBER_ID_PATTERNS = [/urn:li:member:(\d+)/i, /memberId["\s:=]+"?(\d+)/i];
-
-/** Matches a numeric LinkedIn activity id, either as a full URN
- *  (`urn:li:activity:7508142094625021952`) or the `shareId` LinkedIn
- *  sometimes embeds instead (share and activity ids are interchangeable
- *  for this post), as seen in `data-urn`/`id` attributes. */
-const ACTIVITY_ID_PATTERNS = [/urn:li:activity:(\d+)/i, /activityId["\s:=]+"?(\d+)/i, /shareId[=:]"?(\d+)/i];
-
-/**
- * Scans an element's own `data-urn`/`componentkey`/`id` attributes, then
- * its descendants', for the first value matching one of `patterns`.
- * These three attributes are where LinkedIn tends to leak numeric
- * URNs/ids that the visible markup (vanity profile slugs, etc.) doesn't
- * expose directly.
- */
-function findIdInAttributes(root: Element, patterns: readonly RegExp[]): string | null {
-  const candidates = [root, ...Array.from(root.querySelectorAll('[data-urn], [componentkey], [id]'))];
-
-  for (const el of candidates) {
-    const values = [el.getAttribute('data-urn'), el.getAttribute('componentkey'), el.id];
-    for (const value of values) {
-      if (!value) continue;
-      for (const pattern of patterns) {
-        const match = pattern.exec(value);
-        if (match?.[1]) return match[1];
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extracts a person's numeric LinkedIn member id from their header block:
- * an embedded `urn:li:member:...` (in `componentkey`/`id`), or a numeric
- * profile URL (`/in/123456789/`) as used for some older/unclaimed
- * profiles instead of a vanity slug.
- */
-function extractMemberId(block: Element, profileUrl: string | null): string | null {
-  const fromAttributes = findIdInAttributes(block, MEMBER_ID_PATTERNS);
-  if (fromAttributes) return fromAttributes;
-
-  return profileUrl?.match(/\/in\/(\d+)\/?(?:[?#].*)?$/)?.[1] ?? null;
-}
-
-/**
- * Extracts a post's numeric LinkedIn activity id, preferring a
- * `data-urn="urn:li:activity:...""` on the post container itself (per
- * LinkedIn's own markup convention), falling back to a descendant
- * carrying it (or a `shareId`) in `componentkey`/`id`.
- */
-function extractActivityId(container: Element): string | null {
-  return findIdInAttributes(container, ACTIVITY_ID_PATTERNS);
 }
 
 /** Finds every "hide this post" button under root, regardless of case. */
@@ -341,14 +273,13 @@ function extractProfileRef(block: Element | null, label: string): ProfileRef | n
   const name = extractNameFromBlock(block, anchor);
   const profileUrl = anchor?.getAttribute('href') ?? null;
   const kind = classifyAuthorUrl(profileUrl);
-  const memberId = extractMemberId(block, profileUrl);
 
   if (!name && !profileUrl) {
     console.warn(`${LOG_PREFIX} extractProfileRef: could not find "${label}" in block`, block);
     return null;
   }
 
-  const ref: ProfileRef = { name, profileUrl, kind, memberId };
+  const ref: ProfileRef = { name, profileUrl, kind };
   console.log(`${LOG_PREFIX} extractProfileRef: found ${label} ->`, ref);
   return ref;
 }
@@ -474,8 +405,6 @@ export function parseLinkedInPost(container: Element): ParsedLinkedInPost {
   const originalAuthorElement = isReshare ? getOriginalAuthorHeaderRow(container) : null;
   const originalAuthor = isReshare ? extractProfileRef(originalAuthorElement, 'original author') : null;
 
-  const activityId = extractActivityId(container);
-
   const parsed: ParsedLinkedInPost = {
     type,
     container,
@@ -483,7 +412,6 @@ export function parseLinkedInPost(container: Element): ParsedLinkedInPost {
     authorElement,
     originalAuthor,
     originalAuthorElement,
-    activityId,
   };
   console.log(`${LOG_PREFIX} parseLinkedInPost: parsed post ->`, parsed);
   return parsed;
