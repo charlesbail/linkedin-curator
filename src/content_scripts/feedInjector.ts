@@ -26,6 +26,9 @@ const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
 const PROCESSED_ATTR = 'data-aufwiederzen-injector-processed';
 const INJECTED_MARKER_ATTR = 'data-aufwiederzen-injected-for';
 const TOOLBAR_CLASS = 'aufwiederzen-toolbar';
+const DIRECT_TOOLBAR_CLASS = 'aufwiederzen-toolbar--direct';
+const DIRECT_POST_CLASS = 'aufwiederzen-post--direct';
+const DIRECT_HEADER_CLASS = 'aufwiederzen-direct-header';
 const ACTIONS_HOST_CLASS = 'aufwiederzen-actions-host';
 const TOOLBAR_BTN_CLASS = 'aufwiederzen-toolbar-btn';
 const DANGER_BUTTON_CLASS = 'aufwiederzen-toolbar-btn--danger';
@@ -450,29 +453,31 @@ function injectActionButtons(
   profile: ProfileRef,
   markerId: string,
   includeUnfollow: boolean,
+  pinToCardCorner: boolean,
 ): void {
   if (headerElement.querySelector(`[${INJECTED_MARKER_ATTR}="${markerId}"]`)) {
     return; // already injected for this header
   }
+  if (pinToCardCorner && postContainer.querySelector(`[${INJECTED_MARKER_ATTR}="${markerId}"]`)) {
+    return;
+  }
 
   const toolbar = document.createElement('div');
-  toolbar.className = TOOLBAR_CLASS;
+  toolbar.className = pinToCardCorner ? `${TOOLBAR_CLASS} ${DIRECT_TOOLBAR_CLASS}` : TOOLBAR_CLASS;
   toolbar.setAttribute(INJECTED_MARKER_ATTR, markerId);
 
   const menuButton = findOpenPostMenuButton(headerElement);
   const hideButton = findHidePostButton(headerElement);
   const firstNative = menuButton ?? hideButton;
 
-  if (firstNative) {
+  if (pinToCardCorner) {
+    postContainer.classList.add(DIRECT_POST_CLASS);
+    if (headerElement instanceof HTMLElement) {
+      headerElement.classList.add(DIRECT_HEADER_CLASS);
+    }
+    postContainer.append(toolbar);
+  } else if (firstNative) {
     firstNative.insertAdjacentElement('beforebegin', toolbar);
-    if (menuButton) {
-      adoptNativeToolbarButton(menuButton, 'more-horizontal');
-      toolbar.append(menuButton);
-    }
-    if (hideButton) {
-      adoptNativeToolbarButton(hideButton, 'x');
-      toolbar.append(hideButton);
-    }
   } else {
     const lastNativeButton = findLastNativeActionButton(headerElement);
     if (lastNativeButton) {
@@ -482,23 +487,48 @@ function injectActionButtons(
     }
   }
 
+  if (menuButton) {
+    adoptNativeToolbarButton(menuButton, 'more-horizontal');
+    toolbar.append(menuButton);
+  }
+  if (hideButton) {
+    adoptNativeToolbarButton(hideButton, 'x');
+    toolbar.append(hideButton);
+  }
   if (includeUnfollow) {
     toolbar.append(buildUnfollowButton(postContainer, profile));
   }
   toolbar.append(buildBlockButton(postContainer, profile));
-  tagActionsLayoutHost(toolbar);
 
-  console.log(`${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}) for`, profile);
+  if (!pinToCardCorner) {
+    tagActionsLayoutHost(toolbar);
+  }
+
+  console.log(`${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}, pinToCardCorner=${pinToCardCorner}) for`, profile);
 }
 
 function processParsedPost(parsed: ParsedLinkedInPost): void {
   if (parsed.author && parsed.authorElement && isPersonAuthor(parsed.author)) {
-    injectActionButtons(parsed.container, parsed.authorElement, parsed.author, 'author', true);
+    injectActionButtons(
+      parsed.container,
+      parsed.authorElement,
+      parsed.author,
+      'author',
+      true,
+      parsed.type === 'direct',
+    );
   }
 
   const isReshare = parsed.type === 'repost' || parsed.type === 'liked';
   if (isReshare && parsed.originalAuthor && parsed.originalAuthorElement && isPersonAuthor(parsed.originalAuthor)) {
-    injectActionButtons(parsed.container, parsed.originalAuthorElement, parsed.originalAuthor, 'originalAuthor', false);
+    injectActionButtons(
+      parsed.container,
+      parsed.originalAuthorElement,
+      parsed.originalAuthor,
+      'originalAuthor',
+      false,
+      false,
+    );
   }
 }
 
@@ -545,6 +575,8 @@ function removeInjectedButtons(): void {
     toolbar.remove();
   });
   document.querySelectorAll(`.${ACTIONS_HOST_CLASS}`).forEach((el) => el.classList.remove(ACTIONS_HOST_CLASS));
+  document.querySelectorAll(`.${DIRECT_POST_CLASS}`).forEach((el) => el.classList.remove(DIRECT_POST_CLASS));
+  document.querySelectorAll(`.${DIRECT_HEADER_CLASS}`).forEach((el) => el.classList.remove(DIRECT_HEADER_CLASS));
   document.querySelectorAll(`[${PROCESSED_ATTR}]`).forEach((el) => el.removeAttribute(PROCESSED_ATTR));
   console.log(`${LOG_PREFIX} removed previously injected toolbars`);
 }

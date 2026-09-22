@@ -28,7 +28,10 @@
       align-items: flex-start;
       gap: 8px;
     }
-    .header-text { flex: 1; line-height: 1.4; padding: 8px 0; }
+    .card {
+      position: relative;
+      min-height: 120px;
+    }
 
     .follow-host {
       display: flex;
@@ -50,24 +53,24 @@
   <h1>Header toolbar</h1>
   <p class="note">Same 4-icon bar on Post and Repost actor headers. Hover a cell for the background change.</p>
 
-  <div class="case">
-    <h2>Direct post header</h2>
-    <div class="header-row aufwiederzen-actions-host">
-      <span class="header-text">Dan Saffer • Suivi</span>
-      <div class="aufwiederzen-toolbar" data-aufwiederzen-injected-for="author">
-        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Ouvrir le menu de commandes" title="Ouvrir le menu de commandes">
-          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-        </button>
-        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Masquer le post" title="Masquer le post">
-          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Unfollow" title="Unfollow">
-          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
-        </button>
-        <button type="button" class="aufwiederzen-toolbar-btn aufwiederzen-toolbar-btn--danger" aria-label="Block" title="Block">
-          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-        </button>
-      </div>
+  <div class="case card aufwiederzen-post--direct">
+    <h2>Direct post — toolbar pinned to card corner</h2>
+    <div class="header-row aufwiederzen-direct-header">
+      <span class="header-text">Dan Saffer • Suivi<br>Designer. Author. Assistant Professor of The Practice at CMU HCII</span>
+    </div>
+    <div class="aufwiederzen-toolbar aufwiederzen-toolbar--direct" data-aufwiederzen-injected-for="author">
+      <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Ouvrir le menu de commandes" title="Ouvrir le menu de commandes">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </button>
+      <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Masquer le post" title="Masquer le post">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Unfollow" title="Unfollow">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+      </button>
+      <button type="button" class="aufwiederzen-toolbar-btn aufwiederzen-toolbar-btn--danger" aria-label="Block" title="Block">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+      </button>
     </div>
   </div>
 

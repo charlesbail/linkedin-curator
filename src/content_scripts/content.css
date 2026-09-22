@@ -22,6 +22,29 @@
   margin-right: 4px;
 }
 
+/* Direct posts: pin the toolbar to the card's top-right. Tweak the two
+   offset variables — they also drive header padding so the name never
+   runs under the bar. */
+.aufwiederzen-post--direct {
+  --aufwiederzen-toolbar-offset-top: 8px;
+  --aufwiederzen-toolbar-offset-right: 8px;
+  --aufwiederzen-toolbar-header-gap: 8px;
+  position: relative;
+}
+
+.aufwiederzen-toolbar--direct {
+  position: absolute;
+  top: var(--aufwiederzen-toolbar-offset-top);
+  right: var(--aufwiederzen-toolbar-offset-right);
+  margin: 0;
+  z-index: 5;
+}
+
+.aufwiederzen-direct-header {
+  /* 4×36px cells + 2px toolbar border + gap */
+  padding-right: calc(146px + var(--aufwiederzen-toolbar-offset-right) + var(--aufwiederzen-toolbar-header-gap));
+}
+
 .aufwiederzen-toolbar > .aufwiederzen-toolbar-btn {
   all: unset;
   box-sizing: border-box;
