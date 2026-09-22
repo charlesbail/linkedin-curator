@@ -74,13 +74,13 @@ const REPOST_TEXT_PATTERNS = [
 ];
 
 const LIKED_TEXT_PATTERNS = [
-  /aime ce contenu/i,
-  /trouve cela pertinent/i,
-  /trouve cela dr[ôo]le/i,
-  /trouve cela inspirant/i,
-  /c[ée]l[èe]bre cela/i,
-  /soutient cela/i,
-  /adore cela/i,
+  /aime\s+ce/i, // matches: "aime ce contenu", "aime cela", "aime ceci"
+  /trouve\s+ce.*?pertinent/i, // matches: "trouve ce... pertinent"
+  /trouve\s+ce.*?dr[ôo]le/i, // matches: "trouve ce... drôle/drole"
+  /trouve\s+ce.*?inspirant/i, // matches: "trouve ce... inspirant"
+  /c[ée]l[èe]bre\s+ce/i, // matches: "célèbre ce contenu", "célèbre cela", "célèbre ceci"
+  /soutient\s+ce/i, // matches: "soutient ce contenu", "soutient cela", "soutient ceci"
+  /adore\s+ce/i, // matches: "adore ce contenu", "adore cela", "adore ceci"
 ];
 
 const PROFILE_URL_PATTERN = /(?:^\/in\/)|(?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/in\/)/i;
