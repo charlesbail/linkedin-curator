@@ -13,6 +13,26 @@
   gap: 6px;
   margin-left: 8px;
   vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* LinkedIn wraps Follow/Connect in a column flex (or a wrapping grid),
+   often behind a `display: contents` shim. Force a horizontal row so
+   Block sits to the right of the native control regardless of label
+   ("Suivre", "Se connecter", …). feedInjector.ts also tags the nearest
+   real layout parent with `.aufwiederzen-actions-host`. */
+[data-display-contents="true"]:has(> .aufwiederzen-actions) {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center;
+}
+
+.aufwiederzen-actions-host {
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  grid-auto-flow: column !important;
+  align-items: center;
 }
 
 .aufwiederzen-action-btn {

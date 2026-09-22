@@ -24,6 +24,7 @@ const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
 const PROCESSED_ATTR = 'data-aufwiederzen-injector-processed';
 const INJECTED_MARKER_ATTR = 'data-aufwiederzen-injected-for';
 const ACTIONS_CLASS = 'aufwiederzen-actions';
+const ACTIONS_HOST_CLASS = 'aufwiederzen-actions-host';
 const BUTTON_CLASS = 'aufwiederzen-action-btn';
 const DANGER_BUTTON_CLASS = 'aufwiederzen-action-btn--danger';
 
@@ -298,6 +299,34 @@ function findLastNativeActionButton(headerElement: Element): HTMLElement | null 
   return buttons.length > 0 ? (buttons[buttons.length - 1] ?? null) : null;
 }
 
+/**
+ * LinkedIn often wraps Follow/Connect in a column flex (hashed classes
+ * equivalent to flex-direction: column), and the button itself sits
+ * inside a `display: contents` shim. After we inject Block as a sibling,
+ * that column stacks it under long labels ("Se connecter"). Tag the
+ * nearest real layout parent so content.css can force a horizontal row.
+ */
+function tagHorizontalActionsHost(nativeButton: HTMLElement): void {
+  let current: HTMLElement | null = nativeButton.parentElement;
+  while (current) {
+    const style = window.getComputedStyle(current);
+    if (style.display === 'contents') {
+      current = current.parentElement;
+      continue;
+    }
+    const isColumnFlex =
+      (style.display === 'flex' || style.display === 'inline-flex') &&
+      (style.flexDirection === 'column' || style.flexDirection === 'column-reverse');
+    const isRowGrid =
+      (style.display === 'grid' || style.display === 'inline-grid') &&
+      (style.gridAutoFlow === 'row' || style.gridAutoFlow === 'row dense');
+    if (isColumnFlex || isRowGrid) {
+      current.classList.add(ACTIONS_HOST_CLASS);
+    }
+    return;
+  }
+}
+
 function injectActionButtons(
   postContainer: Element,
   headerElement: Element,
@@ -315,6 +344,7 @@ function injectActionButtons(
   const lastNativeButton = findLastNativeActionButton(headerElement);
   if (lastNativeButton) {
     lastNativeButton.insertAdjacentElement('afterend', wrapper);
+    tagHorizontalActionsHost(lastNativeButton);
   } else {
     headerElement.appendChild(wrapper);
   }
@@ -360,6 +390,7 @@ function scheduleScan(): void {
 
 function removeInjectedButtons(): void {
   document.querySelectorAll(`.${ACTIONS_CLASS}`).forEach((el) => el.remove());
+  document.querySelectorAll(`.${ACTIONS_HOST_CLASS}`).forEach((el) => el.classList.remove(ACTIONS_HOST_CLASS));
   document.querySelectorAll(`[${PROCESSED_ATTR}]`).forEach((el) => el.removeAttribute(PROCESSED_ATTR));
   console.log(`${LOG_PREFIX} removed previously injected buttons`);
 }
