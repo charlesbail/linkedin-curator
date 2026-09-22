@@ -30,6 +30,24 @@
     }
     [data-display-contents="true"] { display: contents; }
 
+    /* LinkedIn-like: liked/reshare actor header is a row with start alignment. */
+    .b47b38e7._415b6c0c {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .header-text { flex: 1; line-height: 1.4; padding: 8px 0; }
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      border: 0;
+      background: transparent;
+      font-size: 18px;
+      cursor: pointer;
+      color: #666;
+    }
+
     button.f7a37dee {
       display: inline-flex;
       align-items: center;
@@ -74,6 +92,19 @@
         <div class="aufwiederzen-actions" data-aufwiederzen-injected-for="originalAuthor">
           <button type="button" class="aufwiederzen-action-btn aufwiederzen-action-btn--danger">Block</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="case">
+    <h2>Liked/reshare header — Unfollow + Block vertically centered</h2>
+    <div class="b47b38e7 _415b6c0c _1957d19a _05aaee24 _3e0ed175 _6684dfd4 _09ab8b1b _991ffcd1 d1901be7" componentkey="2484d5ed-8471-4b12-8d6f-fc13fada02f9">
+      <span class="header-text">Emmanuel Julliot adore ce contenu</span>
+      <button class="icon-btn" type="button" aria-label="Ouvrir le menu de commandes">⋯</button>
+      <button class="icon-btn" type="button" aria-label="Masquer le post">×</button>
+      <div class="aufwiederzen-actions" data-aufwiederzen-injected-for="author">
+        <button type="button" class="aufwiederzen-action-btn">Unfollow</button>
+        <button type="button" class="aufwiederzen-action-btn aufwiederzen-action-btn--danger">Block</button>
       </div>
     </div>
   </div>

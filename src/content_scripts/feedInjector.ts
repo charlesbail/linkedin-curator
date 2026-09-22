@@ -300,29 +300,21 @@ function findLastNativeActionButton(headerElement: Element): HTMLElement | null 
 }
 
 /**
- * LinkedIn often wraps Follow/Connect in a column flex (hashed classes
- * equivalent to flex-direction: column), and the button itself sits
- * inside a `display: contents` shim. After we inject Block as a sibling,
- * that column stacks it under long labels ("Se connecter"). Tag the
- * nearest real layout parent so content.css can force a horizontal row.
+ * Tags the nearest real layout parent of a native Follow/Connect/"..."
+ * button. LinkedIn's hashed atomic CSS often uses a column flex (so Block
+ * stacks under long labels) and `align-items: start` on liked/reshare
+ * headers (so Unfollow/Block sit at the top). content.css then forces a
+ * centered horizontal row. `display: contents` shims are skipped so the
+ * class lands on the box that actually lays out the children.
  */
-function tagHorizontalActionsHost(nativeButton: HTMLElement): void {
+function tagActionsLayoutHost(nativeButton: HTMLElement): void {
   let current: HTMLElement | null = nativeButton.parentElement;
   while (current) {
-    const style = window.getComputedStyle(current);
-    if (style.display === 'contents') {
+    if (window.getComputedStyle(current).display === 'contents') {
       current = current.parentElement;
       continue;
     }
-    const isColumnFlex =
-      (style.display === 'flex' || style.display === 'inline-flex') &&
-      (style.flexDirection === 'column' || style.flexDirection === 'column-reverse');
-    const isRowGrid =
-      (style.display === 'grid' || style.display === 'inline-grid') &&
-      (style.gridAutoFlow === 'row' || style.gridAutoFlow === 'row dense');
-    if (isColumnFlex || isRowGrid) {
-      current.classList.add(ACTIONS_HOST_CLASS);
-    }
+    current.classList.add(ACTIONS_HOST_CLASS);
     return;
   }
 }
@@ -344,7 +336,7 @@ function injectActionButtons(
   const lastNativeButton = findLastNativeActionButton(headerElement);
   if (lastNativeButton) {
     lastNativeButton.insertAdjacentElement('afterend', wrapper);
-    tagHorizontalActionsHost(lastNativeButton);
+    tagActionsLayoutHost(lastNativeButton);
   } else {
     headerElement.appendChild(wrapper);
   }

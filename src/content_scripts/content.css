@@ -10,6 +10,7 @@
 .aufwiederzen-actions {
   display: inline-flex;
   align-items: center;
+  align-self: center;
   gap: 6px;
   margin-left: 8px;
   vertical-align: middle;
@@ -17,10 +18,11 @@
 }
 
 /* LinkedIn wraps Follow/Connect in a column flex (or a wrapping grid),
-   often behind a `display: contents` shim. Force a horizontal row so
-   Block sits to the right of the native control regardless of label
-   ("Suivre", "Se connecter", …). feedInjector.ts also tags the nearest
-   real layout parent with `.aufwiederzen-actions-host`. */
+   often behind a `display: contents` shim, and liked/reshare headers use
+   `align-items: start`. Force a centered horizontal row so Block sits to
+   the right of the native control (whatever the label) and Unfollow/Block
+   sit in the vertical middle of the header. feedInjector.ts tags the
+   nearest real layout parent with `.aufwiederzen-actions-host`. */
 [data-display-contents="true"]:has(> .aufwiederzen-actions) {
   display: flex !important;
   flex-direction: row !important;
@@ -32,7 +34,7 @@
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   grid-auto-flow: column !important;
-  align-items: center;
+  align-items: center !important;
 }
 
 .aufwiederzen-action-btn {
