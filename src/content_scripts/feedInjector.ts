@@ -19,7 +19,7 @@ import {
   type ParsedLinkedInPost,
   type ProfileRef,
 } from '../utils/domParsers';
-import { getState, onStateChanged, type CuratorState } from '../utils/storage';
+import { DEFAULT_STATE, getState, onStateChanged, type CuratorState } from '../utils/storage';
 
 const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
 
@@ -45,6 +45,8 @@ const MENU_POLL_OPTIONS = { retries: 15, delayMs: 200 };
 const FADE_OUT_DURATION_MS = 250;
 
 let enabled = false;
+/** Block button on a repost's original-author row. The reposter row always keeps Block. */
+let blockOnOriginalAuthor = DEFAULT_STATE.enableBlockOnOriginalAuthor;
 let observer: MutationObserver | null = null;
 let scanScheduled = false;
 
@@ -454,6 +456,7 @@ function injectActionButtons(
   markerId: string,
   includeUnfollow: boolean,
   pinToCardCorner: boolean,
+  includeBlock: boolean,
 ): void {
   if (headerElement.querySelector(`[${INJECTED_MARKER_ATTR}="${markerId}"]`)) {
     return; // already injected for this header
@@ -462,12 +465,16 @@ function injectActionButtons(
     return;
   }
 
+  const menuButton = findOpenPostMenuButton(headerElement);
+  const hideButton = findHidePostButton(headerElement);
+  if (!includeUnfollow && !includeBlock && !menuButton && !hideButton) {
+    return;
+  }
+
   const toolbar = document.createElement('div');
   toolbar.className = pinToCardCorner ? `${TOOLBAR_CLASS} ${DIRECT_TOOLBAR_CLASS}` : TOOLBAR_CLASS;
   toolbar.setAttribute(INJECTED_MARKER_ATTR, markerId);
 
-  const menuButton = findOpenPostMenuButton(headerElement);
-  const hideButton = findHidePostButton(headerElement);
   const firstNative = menuButton ?? hideButton;
 
   if (pinToCardCorner) {
@@ -498,13 +505,18 @@ function injectActionButtons(
   if (includeUnfollow) {
     toolbar.append(buildUnfollowButton(postContainer, profile));
   }
-  toolbar.append(buildBlockButton(postContainer, profile));
+  if (includeBlock) {
+    toolbar.append(buildBlockButton(postContainer, profile));
+  }
 
   if (!pinToCardCorner) {
     tagActionsLayoutHost(toolbar);
   }
 
-  console.log(`${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}, pinToCardCorner=${pinToCardCorner}) for`, profile);
+  console.log(
+    `${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}, includeBlock=${includeBlock}, pinToCardCorner=${pinToCardCorner}) for`,
+    profile,
+  );
 }
 
 function processParsedPost(parsed: ParsedLinkedInPost): void {
@@ -516,6 +528,7 @@ function processParsedPost(parsed: ParsedLinkedInPost): void {
       'author',
       true,
       parsed.type === 'direct',
+      true,
     );
   }
 
@@ -528,6 +541,7 @@ function processParsedPost(parsed: ParsedLinkedInPost): void {
       'originalAuthor',
       false,
       false,
+      blockOnOriginalAuthor,
     );
   }
 }
@@ -596,20 +610,38 @@ function stopObserving(): void {
   console.log(`${LOG_PREFIX} stopped observing the feed`);
 }
 
-function applyEnabledState(nextEnabled: boolean): void {
+function applyFeedControls(state: CuratorState): void {
+  const nextEnabled = state.enableButtonsInFeed;
+  const nextBlockOnOriginalAuthor = state.enableBlockOnOriginalAuthor;
+  const enabledChanged = nextEnabled !== enabled;
+  const blockChanged = nextBlockOnOriginalAuthor !== blockOnOriginalAuthor;
+
   enabled = nextEnabled;
-  if (enabled) {
-    startObserving();
-  } else {
+  blockOnOriginalAuthor = nextBlockOnOriginalAuthor;
+
+  if (!enabled) {
+    if (enabledChanged || observer) {
+      stopObserving();
+      removeInjectedButtons();
+    }
+    return;
+  }
+
+  // Drop the observer before tearing buttons down so the removal itself
+  // cannot schedule a scan that redraws the original-author Block button.
+  if (blockChanged) {
     stopObserving();
     removeInjectedButtons();
+  }
+  if (enabledChanged || blockChanged || !observer) {
+    startObserving();
   }
 }
 
 chrome.runtime.onMessage.addListener(
   (message: { type: string; state?: CuratorState; requestId?: string; success?: boolean; reason?: string }) => {
     if (message?.type === 'STATE_UPDATED' && message.state) {
-      applyEnabledState(message.state.enableButtonsInFeed);
+      applyFeedControls(message.state);
       return;
     }
 
@@ -620,12 +652,11 @@ chrome.runtime.onMessage.addListener(
 );
 
 onStateChanged((state) => {
-  applyEnabledState(state.enableButtonsInFeed);
+  applyFeedControls(state);
 });
 
 async function init(): Promise<void> {
-  const state = await getState();
-  applyEnabledState(state.enableButtonsInFeed);
+  applyFeedControls(await getState());
 }
 
 init();

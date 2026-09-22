@@ -14,6 +14,7 @@ import { DEFAULT_STATE, getState, setState } from '../utils/storage';
 
 const LOG_PREFIX = '[Aufwieder-zen:background]';
 const LINKEDIN_URL_PATTERN = 'https://www.linkedin.com/*';
+const FEED_URL_PATTERNS = ['https://www.linkedin.com/feed/*', 'https://www.linkedin.com/'];
 const PROFILE_URL_PATTERN = /^https:\/\/(?:www\.)?linkedin\.com\/in\//i;
 const TAB_LOAD_TIMEOUT_MS = 15000;
 const AUTOMATION_TIMEOUT_MS = 20000;
@@ -25,7 +26,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 });
 
 export type BackgroundMessage =
-  | { type: 'REFRESH_LINKEDIN_TABS' }
+  | { type: 'REFRESH_LINKEDIN_TABS'; reloadFeed?: boolean }
   | { type: 'GET_STATE' }
   | { type: 'BLOCK_PROFILE_REQUEST'; requestId: string; profileUrl: string; name: string };
 
@@ -43,7 +44,11 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender, sendRe
   }
 
   if (message?.type === 'REFRESH_LINKEDIN_TABS') {
-    broadcastToLinkedInTabs();
+    if (message.reloadFeed) {
+      void reloadLinkedInFeedTabs();
+    } else {
+      void broadcastToLinkedInTabs();
+    }
     return false;
   }
 
@@ -59,6 +64,12 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender, sendRe
 
   return false;
 });
+
+/** Reloads open feed tabs so content scripts re-inject with the latest settings. */
+async function reloadLinkedInFeedTabs(): Promise<void> {
+  const tabs = await chrome.tabs.query({ url: FEED_URL_PATTERNS });
+  await Promise.all(tabs.map((tab) => (tab.id === undefined ? Promise.resolve() : chrome.tabs.reload(tab.id))));
+}
 
 async function broadcastToLinkedInTabs(): Promise<void> {
   const tabs = await chrome.tabs.query({ url: LINKEDIN_URL_PATTERN });
