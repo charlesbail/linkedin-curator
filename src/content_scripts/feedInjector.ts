@@ -233,26 +233,30 @@ async function handleBlockProfileResult(requestId: string, success: boolean, rea
   }
 }
 
-function buildActionButtons(postContainer: Element, profile: ProfileRef): HTMLElement {
+function buildActionButtons(postContainer: Element, profile: ProfileRef, includeUnfollow: boolean): HTMLElement {
   const wrapper = document.createElement('div');
   wrapper.className = ACTIONS_CLASS;
 
-  const unfollowButton = document.createElement('button');
-  unfollowButton.type = 'button';
-  unfollowButton.className = BUTTON_CLASS;
-  unfollowButton.textContent = 'Unfollow';
-  unfollowButton.setAttribute('aria-label', `Ne plus suivre ${profile.name} (Aufwieder-zen)`);
-  unfollowButton.addEventListener('click', async (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (unfollowButton.disabled) return;
-    unfollowButton.disabled = true;
-    try {
-      await performUnfollow(profile, postContainer);
-    } finally {
-      unfollowButton.disabled = false;
-    }
-  });
+  if (includeUnfollow) {
+    const unfollowButton = document.createElement('button');
+    unfollowButton.type = 'button';
+    unfollowButton.className = BUTTON_CLASS;
+    unfollowButton.textContent = 'Unfollow';
+    unfollowButton.setAttribute('aria-label', `Ne plus suivre ${profile.name} (Aufwieder-zen)`);
+    unfollowButton.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      console.log(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
+      if (unfollowButton.disabled) return;
+      unfollowButton.disabled = true;
+      try {
+        await performUnfollow(profile, postContainer);
+      } finally {
+        unfollowButton.disabled = false;
+      }
+    });
+    wrapper.append(unfollowButton);
+  }
 
   const blockButton = document.createElement('button');
   blockButton.type = 'button';
@@ -268,6 +272,7 @@ function buildActionButtons(postContainer: Element, profile: ProfileRef): HTMLEl
     blockButton.addEventListener('click', async (event) => {
       event.preventDefault();
       event.stopPropagation();
+      console.log(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
       if (blockButton.disabled) return;
       blockButton.disabled = true;
       try {
@@ -278,7 +283,7 @@ function buildActionButtons(postContainer: Element, profile: ProfileRef): HTMLEl
     });
   }
 
-  wrapper.append(unfollowButton, blockButton);
+  wrapper.append(blockButton);
   return wrapper;
 }
 
@@ -298,12 +303,13 @@ function injectActionButtons(
   headerElement: Element,
   profile: ProfileRef,
   markerId: string,
+  includeUnfollow: boolean,
 ): void {
   if (headerElement.querySelector(`[${INJECTED_MARKER_ATTR}="${markerId}"]`)) {
     return; // already injected for this header
   }
 
-  const wrapper = buildActionButtons(postContainer, profile);
+  const wrapper = buildActionButtons(postContainer, profile, includeUnfollow);
   wrapper.setAttribute(INJECTED_MARKER_ATTR, markerId);
 
   const lastNativeButton = findLastNativeActionButton(headerElement);
@@ -313,17 +319,17 @@ function injectActionButtons(
     headerElement.appendChild(wrapper);
   }
 
-  console.log(`${LOG_PREFIX} injected buttons (${markerId}) for`, profile);
+  console.log(`${LOG_PREFIX} injected buttons (${markerId}, includeUnfollow=${includeUnfollow}) for`, profile);
 }
 
 function processParsedPost(parsed: ParsedLinkedInPost): void {
   if (parsed.author && parsed.authorElement && isPersonAuthor(parsed.author)) {
-    injectActionButtons(parsed.container, parsed.authorElement, parsed.author, 'author');
+    injectActionButtons(parsed.container, parsed.authorElement, parsed.author, 'author', true);
   }
 
   const isReshare = parsed.type === 'repost' || parsed.type === 'liked';
   if (isReshare && parsed.originalAuthor && parsed.originalAuthorElement && isPersonAuthor(parsed.originalAuthor)) {
-    injectActionButtons(parsed.container, parsed.originalAuthorElement, parsed.originalAuthor, 'originalAuthor');
+    injectActionButtons(parsed.container, parsed.originalAuthorElement, parsed.originalAuthor, 'originalAuthor', false);
   }
 }
 
