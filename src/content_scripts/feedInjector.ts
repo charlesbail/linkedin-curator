@@ -1,14 +1,16 @@
 /**
- * Content script: injects "Unfollow"/"Block" quick-action buttons into
- * feed post headers as the user scrolls. DOM manipulation and injection
- * only — post classification/parsing lives in utils/domParsers.ts, and
- * the on/off state lives in utils/storage.ts.
+ * Content script: injects a shared icon toolbar into feed post headers
+ * as the user scrolls. Native "..." / hide buttons are adopted into the
+ * toolbar so they keep LinkedIn's behaviour; Unfollow / Block are ours.
+ * Post classification lives in utils/domParsers.ts; on/off state lives
+ * in utils/storage.ts.
  *
  * Block is cross-tab: this script only sends a request to background.ts
  * (which opens a temporary profile tab and drives the actual block flow
  * there via blockAutomation.ts) and reacts to the result it relays back.
  */
 import {
+  findHidePostButton,
   findOpenPostMenuButton,
   findPostContainers,
   findUnfollowMenuItem,
@@ -23,10 +25,14 @@ const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
 
 const PROCESSED_ATTR = 'data-aufwiederzen-injector-processed';
 const INJECTED_MARKER_ATTR = 'data-aufwiederzen-injected-for';
-const ACTIONS_CLASS = 'aufwiederzen-actions';
+const TOOLBAR_CLASS = 'aufwiederzen-toolbar';
 const ACTIONS_HOST_CLASS = 'aufwiederzen-actions-host';
-const BUTTON_CLASS = 'aufwiederzen-action-btn';
-const DANGER_BUTTON_CLASS = 'aufwiederzen-action-btn--danger';
+const TOOLBAR_BTN_CLASS = 'aufwiederzen-toolbar-btn';
+const DANGER_BUTTON_CLASS = 'aufwiederzen-toolbar-btn--danger';
+const OWNED_BTN_ATTR = 'data-aufwiederzen-owned';
+const ADOPTED_BTN_ATTR = 'data-aufwiederzen-adopted';
+const HIDDEN_NATIVE_ATTR = 'data-aufwiederzen-hidden';
+const ICON_ATTR = 'data-aufwiederzen-icon';
 
 /** How long to keep polling for the "..." popover menu to render before
  *  giving up: 15 attempts * 200ms = up to 3s, generous enough for a slow
@@ -234,65 +240,136 @@ async function handleBlockProfileResult(requestId: string, success: boolean, rea
   }
 }
 
-function buildActionButtons(postContainer: Element, profile: ProfileRef, includeUnfollow: boolean): HTMLElement {
-  const wrapper = document.createElement('div');
-  wrapper.className = ACTIONS_CLASS;
-
-  if (includeUnfollow) {
-    const unfollowButton = document.createElement('button');
-    unfollowButton.type = 'button';
-    unfollowButton.className = BUTTON_CLASS;
-    unfollowButton.textContent = 'Unfollow';
-    unfollowButton.setAttribute('aria-label', `Ne plus suivre ${profile.name} (Aufwieder-zen)`);
-    unfollowButton.addEventListener('click', async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      console.log(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
-      if (unfollowButton.disabled) return;
-      unfollowButton.disabled = true;
-      try {
-        await performUnfollow(profile, postContainer);
-      } finally {
-        unfollowButton.disabled = false;
-      }
-    });
-    wrapper.append(unfollowButton);
+function svgEl(tag: string, attrs: Record<string, string>): SVGElement {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    el.setAttribute(key, value);
   }
+  return el;
+}
 
-  const blockButton = document.createElement('button');
-  blockButton.type = 'button';
-  blockButton.className = `${BUTTON_CLASS} ${DANGER_BUTTON_CLASS}`;
-  blockButton.textContent = 'Block';
-  blockButton.setAttribute('aria-label', `Bloquer ${profile.name} (Aufwieder-zen)`);
-  if (!profile.profileUrl) {
-    blockButton.disabled = true;
-    blockButton.title = 'Missing profile URL for this post';
-    console.warn(`${LOG_PREFIX} "Block" disabled: missing profile URL for`, profile.name);
+type ToolbarIcon = 'more-horizontal' | 'x' | 'user-minus' | 'ban';
+
+/** Lucide (shadcn) outlines, 24×24 viewBox, rendered at 16px. */
+function createToolbarIcon(name: ToolbarIcon): SVGSVGElement {
+  const svg = svgEl('svg', {
+    viewBox: '0 0 24 24',
+    width: '16',
+    height: '16',
+    fill: 'none',
+    stroke: 'currentColor',
+    'stroke-width': '2',
+    'stroke-linecap': 'round',
+    'stroke-linejoin': 'round',
+    'aria-hidden': 'true',
+    [ICON_ATTR]: 'true',
+  }) as SVGSVGElement;
+
+  if (name === 'more-horizontal') {
+    svg.append(
+      svgEl('circle', { cx: '12', cy: '12', r: '1' }),
+      svgEl('circle', { cx: '19', cy: '12', r: '1' }),
+      svgEl('circle', { cx: '5', cy: '12', r: '1' }),
+    );
+  } else if (name === 'x') {
+    svg.append(svgEl('path', { d: 'M18 6 6 18' }), svgEl('path', { d: 'm6 6 12 12' }));
+  } else if (name === 'user-minus') {
+    svg.append(
+      svgEl('path', { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' }),
+      svgEl('circle', { cx: '9', cy: '7', r: '4' }),
+      svgEl('line', { x1: '22', x2: '16', y1: '11', y2: '11' }),
+    );
   } else {
-    const profileUrl = profile.profileUrl;
-    blockButton.addEventListener('click', async (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      console.log(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
-      if (blockButton.disabled) return;
-      blockButton.disabled = true;
-      try {
-        await performBlock(profile.name, profileUrl, postContainer);
-      } finally {
-        blockButton.disabled = false;
-      }
-    });
+    svg.append(svgEl('circle', { cx: '12', cy: '12', r: '10' }), svgEl('path', { d: 'm4.9 4.9 14.2 14.2' }));
   }
 
-  wrapper.append(blockButton);
-  return wrapper;
+  return svg;
+}
+
+function adoptNativeToolbarButton(button: HTMLElement, icon: ToolbarIcon): void {
+  button.classList.add(TOOLBAR_BTN_CLASS);
+  button.setAttribute(ADOPTED_BTN_ATTR, 'true');
+  if (!button.title) {
+    button.title = button.getAttribute('aria-label') ?? '';
+  }
+  Array.from(button.children).forEach((child) => {
+    if (child instanceof HTMLElement) {
+      child.setAttribute(HIDDEN_NATIVE_ATTR, 'true');
+    }
+  });
+  button.append(createToolbarIcon(icon));
+}
+
+function restoreNativeToolbarButton(button: HTMLElement): void {
+  button.querySelectorAll(`[${ICON_ATTR}]`).forEach((icon) => icon.remove());
+  button.querySelectorAll(`[${HIDDEN_NATIVE_ATTR}]`).forEach((child) => child.removeAttribute(HIDDEN_NATIVE_ATTR));
+  button.classList.remove(TOOLBAR_BTN_CLASS);
+  button.removeAttribute(ADOPTED_BTN_ATTR);
+}
+
+function buildOwnedToolbarButton(
+  icon: ToolbarIcon,
+  label: string,
+  onClick: (button: HTMLButtonElement) => Promise<void>,
+  danger = false,
+): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = danger ? `${TOOLBAR_BTN_CLASS} ${DANGER_BUTTON_CLASS}` : TOOLBAR_BTN_CLASS;
+  button.setAttribute(OWNED_BTN_ATTR, 'true');
+  button.setAttribute('aria-label', label);
+  button.title = label;
+  button.append(createToolbarIcon(icon));
+  button.addEventListener('click', async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      await onClick(button);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  return button;
+}
+
+function buildUnfollowButton(postContainer: Element, profile: ProfileRef): HTMLButtonElement {
+  return buildOwnedToolbarButton(
+    'user-minus',
+    `Ne plus suivre ${profile.name} (Aufwieder-zen)`,
+    async () => {
+      console.log(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
+      await performUnfollow(profile, postContainer);
+    },
+  );
+}
+
+function buildBlockButton(postContainer: Element, profile: ProfileRef): HTMLButtonElement {
+  const button = buildOwnedToolbarButton(
+    'ban',
+    `Bloquer ${profile.name} (Aufwieder-zen)`,
+    async () => {
+      const profileUrl = profile.profileUrl;
+      if (!profileUrl) return;
+      console.log(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
+      await performBlock(profile.name, profileUrl, postContainer);
+    },
+    true,
+  );
+  if (!profile.profileUrl) {
+    button.disabled = true;
+    button.title = 'Missing profile URL for this post';
+    console.warn(`${LOG_PREFIX} "Block" disabled: missing profile URL for`, profile.name);
+  }
+  return button;
 }
 
 /**
  * Finds the rightmost native action button (LinkedIn's "..." menu, hide
- * button, or follow/connect button) in a header row, so our buttons can be
- * inserted immediately after it — i.e. next to the existing controls,
- * without needing separate positioning logic per post type.
+ * button, or follow/connect button) in a header row, so a Block-only
+ * toolbar can be inserted immediately after Follow/Connect on original-
+ * author rows that have no overflow/hide chrome.
  */
 function findLastNativeActionButton(headerElement: Element): HTMLElement | null {
   const buttons = Array.from(headerElement.querySelectorAll<HTMLElement>('button[aria-label], a[aria-label]'));
@@ -300,16 +377,20 @@ function findLastNativeActionButton(headerElement: Element): HTMLElement | null 
 }
 
 /**
- * Tags the nearest real layout parent of a native Follow/Connect/"..."
- * button. LinkedIn's hashed atomic CSS often uses a column flex (so Block
- * stacks under long labels) and `align-items: start` on liked/reshare
- * headers (so Unfollow/Block sit at the top). content.css then forces a
- * centered horizontal row. `display: contents` shims are skipped so the
+ * Tags the nearest real layout parent of the toolbar. LinkedIn's hashed
+ * atomic CSS often uses a column flex (so the toolbar stacks under long
+ * Follow/Connect labels) and `align-items: start` on liked/reshare
+ * headers. content.css then forces a centered horizontal row.
+ * `display: contents` shims and the toolbar itself are skipped so the
  * class lands on the box that actually lays out the children.
  */
-function tagActionsLayoutHost(nativeButton: HTMLElement): void {
-  let current: HTMLElement | null = nativeButton.parentElement;
+function tagActionsLayoutHost(start: HTMLElement): void {
+  let current: HTMLElement | null = start;
   while (current) {
+    if (current.classList.contains(TOOLBAR_CLASS)) {
+      current = current.parentElement;
+      continue;
+    }
     if (window.getComputedStyle(current).display === 'contents') {
       current = current.parentElement;
       continue;
@@ -330,18 +411,40 @@ function injectActionButtons(
     return; // already injected for this header
   }
 
-  const wrapper = buildActionButtons(postContainer, profile, includeUnfollow);
-  wrapper.setAttribute(INJECTED_MARKER_ATTR, markerId);
+  const toolbar = document.createElement('div');
+  toolbar.className = TOOLBAR_CLASS;
+  toolbar.setAttribute(INJECTED_MARKER_ATTR, markerId);
 
-  const lastNativeButton = findLastNativeActionButton(headerElement);
-  if (lastNativeButton) {
-    lastNativeButton.insertAdjacentElement('afterend', wrapper);
-    tagActionsLayoutHost(lastNativeButton);
+  const menuButton = findOpenPostMenuButton(headerElement);
+  const hideButton = findHidePostButton(headerElement);
+  const firstNative = menuButton ?? hideButton;
+
+  if (firstNative) {
+    firstNative.insertAdjacentElement('beforebegin', toolbar);
+    if (menuButton) {
+      adoptNativeToolbarButton(menuButton, 'more-horizontal');
+      toolbar.append(menuButton);
+    }
+    if (hideButton) {
+      adoptNativeToolbarButton(hideButton, 'x');
+      toolbar.append(hideButton);
+    }
   } else {
-    headerElement.appendChild(wrapper);
+    const lastNativeButton = findLastNativeActionButton(headerElement);
+    if (lastNativeButton) {
+      lastNativeButton.insertAdjacentElement('afterend', toolbar);
+    } else {
+      headerElement.appendChild(toolbar);
+    }
   }
 
-  console.log(`${LOG_PREFIX} injected buttons (${markerId}, includeUnfollow=${includeUnfollow}) for`, profile);
+  if (includeUnfollow) {
+    toolbar.append(buildUnfollowButton(postContainer, profile));
+  }
+  toolbar.append(buildBlockButton(postContainer, profile));
+  tagActionsLayoutHost(toolbar);
+
+  console.log(`${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}) for`, profile);
 }
 
 function processParsedPost(parsed: ParsedLinkedInPost): void {
@@ -381,10 +484,25 @@ function scheduleScan(): void {
 }
 
 function removeInjectedButtons(): void {
-  document.querySelectorAll(`.${ACTIONS_CLASS}`).forEach((el) => el.remove());
+  document.querySelectorAll(`.${TOOLBAR_CLASS}`).forEach((toolbar) => {
+    const parent = toolbar.parentNode;
+    Array.from(toolbar.children).forEach((child) => {
+      if (!(child instanceof HTMLElement)) {
+        child.remove();
+        return;
+      }
+      if (child.hasAttribute(OWNED_BTN_ATTR)) {
+        child.remove();
+        return;
+      }
+      restoreNativeToolbarButton(child);
+      parent?.insertBefore(child, toolbar);
+    });
+    toolbar.remove();
+  });
   document.querySelectorAll(`.${ACTIONS_HOST_CLASS}`).forEach((el) => el.classList.remove(ACTIONS_HOST_CLASS));
   document.querySelectorAll(`[${PROCESSED_ATTR}]`).forEach((el) => el.removeAttribute(PROCESSED_ATTR));
-  console.log(`${LOG_PREFIX} removed previously injected buttons`);
+  console.log(`${LOG_PREFIX} removed previously injected toolbars`);
 }
 
 function startObserving(): void {

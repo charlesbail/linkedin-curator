@@ -3,27 +3,104 @@
    attributes; feature styles (fade-out animation) should key off those
    attributes here as they're implemented. */
 
-/* Buttons injected by feedInjector.ts next to a post header's native
-   "..."/hide/follow controls. Reset with `all: unset` first since these
-   elements are injected into LinkedIn's own DOM and would otherwise
-   inherit whatever ambient styles cascade from its atomic CSS classes. */
-.aufwiederzen-actions {
+/* Shared header toolbar (feedInjector.ts): [... | X | Unfollow | Block].
+   Native "..." / hide buttons are adopted into this flex row so they keep
+   LinkedIn's click handlers while sharing our chrome. `all: unset` plus
+   !important backgrounds beat LinkedIn's atomic hover styles. */
+.aufwiederzen-toolbar {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: stretch;
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  background-color: #ffffff;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn {
+  all: unset;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  align-self: center;
-  gap: 6px;
-  margin-left: 8px;
-  vertical-align: middle;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  color: #434649;
+  background-color: #ffffff !important;
+  border: none;
+  border-right: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  transition: background-color 0.15s ease;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn:last-child {
+  border-right: none;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn:hover {
+  background-color: #f4f4f5 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn:hover * {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn:focus-visible {
+  outline: 2px solid #0a66c2;
+  outline-offset: -2px;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn--danger {
+  color: #b3261e;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn--danger:hover {
+  background-color: #fef2f2 !important;
+}
+
+.aufwiederzen-toolbar > .aufwiederzen-toolbar-btn--danger:hover * {
+  background-color: transparent !important;
+}
+
+.aufwiederzen-toolbar [data-aufwiederzen-hidden] {
+  display: none !important;
+}
+
+.aufwiederzen-toolbar svg[data-aufwiederzen-icon] {
+  width: 16px;
+  height: 16px;
+  display: block;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* LinkedIn wraps Follow/Connect in a column flex (or a wrapping grid),
    often behind a `display: contents` shim, and liked/reshare headers use
-   `align-items: start`. Force a centered horizontal row so Block sits to
-   the right of the native control (whatever the label) and Unfollow/Block
-   sit in the vertical middle of the header. feedInjector.ts tags the
-   nearest real layout parent with `.aufwiederzen-actions-host`. */
-[data-display-contents="true"]:has(> .aufwiederzen-actions) {
+   `align-items: start`. Force a centered horizontal row so the toolbar
+   sits to the right of native chrome. feedInjector.ts tags the nearest
+   real layout parent with `.aufwiederzen-actions-host`. */
+[data-display-contents="true"]:has(> .aufwiederzen-toolbar) {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
@@ -35,53 +112,6 @@
   flex-wrap: nowrap !important;
   grid-auto-flow: column !important;
   align-items: center !important;
-}
-
-.aufwiederzen-action-btn {
-  all: unset;
-  box-sizing: border-box;
-  display: inline-block;
-  cursor: pointer;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.4;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background-color: #ffffff;
-  color: #434649;
-  white-space: nowrap;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.aufwiederzen-action-btn:hover {
-  background-color: #f3f2ef;
-  border-color: rgba(0, 0, 0, 0.3);
-}
-
-.aufwiederzen-action-btn:focus-visible {
-  outline: 2px solid #0a66c2;
-  outline-offset: 1px;
-}
-
-.aufwiederzen-action-btn:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
-
-.aufwiederzen-action-btn--danger {
-  color: #b3261e;
-  border-color: rgba(179, 38, 30, 0.35);
-}
-
-.aufwiederzen-action-btn--danger:hover {
-  background-color: #fdecea;
-  border-color: rgba(179, 38, 30, 0.6);
 }
 
 /* Toast notifications (feedInjector.ts) reporting async action
