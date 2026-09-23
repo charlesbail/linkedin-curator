@@ -9,8 +9,6 @@
 export interface CuratorState {
   /** Injects quick-action buttons onto feed posts. */
   enableButtonsInFeed: boolean;
-  /** Animates removed/hidden posts with a fade-out instead of an instant cut. */
-  enableFadeAnimation: boolean;
   /**
    * Shows the Block button on the original-author row of a repost or like.
    * The actor's own row is unaffected. Visibility is CSS on the injected toolbar.
@@ -21,13 +19,18 @@ export interface CuratorState {
    * Applied in CSS via flex-direction; the DOM order stays unchanged.
    */
   reverseToolbarOrder: boolean;
+  /** Enables console logs and debug helpers throughout the extension. */
+  debugMode: boolean;
+  /** Number of profiles this extension has successfully blocked. */
+  blockedProfileCount: number;
 }
 
 export const DEFAULT_STATE: CuratorState = {
   enableButtonsInFeed: true,
-  enableFadeAnimation: true,
   enableBlockOnOriginalAuthor: true,
   reverseToolbarOrder: false,
+  debugMode: false,
+  blockedProfileCount: 0,
 };
 
 const STORAGE_KEY = 'curatorState';
@@ -42,6 +45,14 @@ export async function setState(patch: Partial<CuratorState>): Promise<CuratorSta
   const current = await getState();
   const next: CuratorState = { ...current, ...patch };
   await chrome.storage.local.set({ [STORAGE_KEY]: next });
+  return next;
+}
+
+/** Records one successful block in the persisted profile count. */
+export async function incrementBlockedProfileCount(): Promise<number> {
+  const current = await getState();
+  const next = current.blockedProfileCount + 1;
+  await setState({ blockedProfileCount: next });
   return next;
 }
 

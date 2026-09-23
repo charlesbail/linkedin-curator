@@ -1,4 +1,5 @@
-/* Injected into the LinkedIn feed page.
+/* Injected on linkedin.com. The post scan only runs on the feed;
+   these rules only match the extension's own toolbar.
    content.ts mirrors the curator state onto <html data-aufwiederzen-*>
    attributes; feature styles (fade-out animation) should key off those
    attributes here as they're implemented. */
@@ -128,11 +129,12 @@ html[data-aufwiederzen-original-author-block-enabled='false']
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--danger {
-  color: #b3261e;
+  color: #434649;
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--danger:hover {
-  background-color: #fef2f2 !important;
+  background-color: #f7e2e2 !important;
+  color: #b93939 !important
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--danger:hover * {
@@ -154,7 +156,7 @@ html[data-aufwiederzen-original-author-block-enabled='false']
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--busy:disabled {
   cursor: wait;
   opacity: 1;
-  color: #b07a76;
+  color: #434649;
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--busy:hover,

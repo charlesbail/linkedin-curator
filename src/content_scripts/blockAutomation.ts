@@ -21,6 +21,22 @@ export async function runBlockAutomation(
 ): Promise<{ requestId: string; success: boolean; reason?: string }> {
   const LOG_PREFIX = '[Aufwieder-zen:blockAutomation]';
 
+  let debugMode = false;
+  try {
+    const result = await chrome.storage.local.get('curatorState');
+    debugMode = result.curatorState?.debugMode ?? false;
+  } catch {
+    // If storage access fails, default to false
+  }
+
+  function debugLog(message?: unknown, ...args: unknown[]): void {
+    if (debugMode) console.log(message, ...args);
+  }
+
+  function debugWarn(message?: unknown, ...args: unknown[]): void {
+    if (debugMode) console.warn(message, ...args);
+  }
+
   function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -108,56 +124,56 @@ export async function runBlockAutomation(
     return buttons[1] ?? null;
   }
 
-  console.log(`${LOG_PREFIX} starting for "${targetName}" (request ${requestId})`);
+  debugLog(`${LOG_PREFIX} starting for "${targetName}" (request ${requestId})`);
 
   try {
-    console.log(`${LOG_PREFIX} step 1/3: waiting for the "Plus" button`);
+    debugLog(`${LOG_PREFIX} step 1/3: waiting for the "Plus" button`);
     const plusButton = await waitFor(() => {
       const btn = findPlusButton();
       return btn && isVisible(btn) ? btn : null;
     }, 15, 200);
     if (!plusButton) {
-      console.warn(`${LOG_PREFIX} "Plus" button never appeared`);
+      debugWarn(`${LOG_PREFIX} "Plus" button never appeared`);
       return { requestId, success: false, reason: 'plus-button-not-found' };
     }
-    console.log(`${LOG_PREFIX} found "Plus" button, clicking`);
+    debugLog(`${LOG_PREFIX} found "Plus" button, clicking`);
     activatePointer(plusButton);
 
-    console.log(`${LOG_PREFIX} step 2/3: waiting for "Bloquer ${targetName}" in the submenu`);
+    debugLog(`${LOG_PREFIX} step 2/3: waiting for "Bloquer ${targetName}" in the submenu`);
     await sleep(150);
     const blockMenuItem = await waitFor(() => {
       const item = findBlockMenuItem(targetName);
       return item && isVisible(item) ? item : null;
     }, 15, 200);
     if (!blockMenuItem) {
-      console.warn(`${LOG_PREFIX} "Bloquer ${targetName}" menu item never appeared`);
+      debugWarn(`${LOG_PREFIX} "Bloquer ${targetName}" menu item never appeared`);
       return { requestId, success: false, reason: 'block-menu-item-not-found' };
     }
-    console.log(`${LOG_PREFIX} found "${normalizeText(blockMenuItem.textContent ?? '')}", clicking`);
+    debugLog(`${LOG_PREFIX} found "${normalizeText(blockMenuItem.textContent ?? '')}", clicking`);
     activatePointer(blockMenuItem);
 
-    console.log(`${LOG_PREFIX} step 3/3: waiting for the confirmation dialog`);
+    debugLog(`${LOG_PREFIX} step 3/3: waiting for the confirmation dialog`);
     await sleep(150);
     const dialog = await waitFor(() => {
       const el = document.querySelector('dialog[data-testid="dialog"]');
       return el && isVisible(el) ? el : null;
     }, 15, 200);
     if (!dialog) {
-      console.warn(`${LOG_PREFIX} confirmation dialog never appeared`);
+      debugWarn(`${LOG_PREFIX} confirmation dialog never appeared`);
       return { requestId, success: false, reason: 'dialog-not-found' };
     }
     const confirmButton = findBlockConfirmButton(dialog);
     if (!confirmButton) {
-      console.warn(`${LOG_PREFIX} "Bloquer" confirm button not found in dialog`);
+      debugWarn(`${LOG_PREFIX} "Bloquer" confirm button not found in dialog`);
       return { requestId, success: false, reason: 'confirm-button-not-found' };
     }
-    console.log(`${LOG_PREFIX} found dialog confirm button, clicking`);
+    debugLog(`${LOG_PREFIX} found dialog confirm button, clicking`);
     activatePointer(confirmButton);
 
-    console.log(`${LOG_PREFIX} block confirmed for "${targetName}"`);
+    debugLog(`${LOG_PREFIX} block confirmed for "${targetName}"`);
     return { requestId, success: true };
   } catch (error) {
-    console.warn(`${LOG_PREFIX} threw`, error);
+    debugWarn(`${LOG_PREFIX} threw`, error);
     return { requestId, success: false, reason: 'exception' };
   }
 }
