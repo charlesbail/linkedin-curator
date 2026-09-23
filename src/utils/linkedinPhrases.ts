@@ -162,13 +162,9 @@ export const LINKEDIN_LOOKUPS = {
     phrases: phrases(
       [
         'a ajouté un commentaire',
-        'a ajoutée un commentaire',
         'a reposté ceci',
-        'a repostée ceci',
         'a republié ceci',
-        'a republiée ceci',
         'a partagé ceci',
-        'a partagée ceci',
       ],
       [],
     ),
@@ -177,7 +173,7 @@ export const LINKEDIN_LOOKUPS = {
   likedHeader: {
     match: 'contains',
     phrases: phrases(
-      ['aime ce', 'trouve ce', 'célèbre ce', 'célebre ce', 'celèbre ce', 'celebre ce', 'soutient ce', 'adore ce'],
+      ['aime ce', 'trouve ce', 'célèbre ce', 'soutient ce', 'adore ce'],
       [],
     ),
   },

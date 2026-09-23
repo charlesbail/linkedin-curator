@@ -1,0 +1,41 @@
+section,id,match,fr,en
+lookup,hidePost,prefix,Masquer le post de {name},Hide post by {name}
+lookup,hidePost,prefix,Masquer les posts de {name},Hide posts by {name}
+lookup,openPostMenu,exact,Options,Options
+lookup,openPostMenuLegacy,prefix,Ouvrir le menu de commandes pour le post de {name},Open control menu for post by {name}
+lookup,repostHeader,contains,a ajouté un commentaire,commented
+lookup,repostHeader,contains,a reposté ceci,reposted th
+lookup,repostHeader,contains,a republié ceci,reposted th
+lookup,repostHeader,contains,a partagé ceci,shared
+lookup,likedHeader,contains,aime ce,likes th
+lookup,likedHeader,contains,trouve ce,finds th
+lookup,likedHeader,contains,célèbre ce,celebrates th
+lookup,likedHeader,contains,soutient ce,supports th
+lookup,likedHeader,contains,adore ce,loves th
+lookup,unfollowMenu,prefix,Ne plus suivre {name},Unfollow {name}
+lookup,plusButton,exact,Plus,More
+lookup,blockMenu,prefix,Bloquer {name},Block {name}
+lookup,blockConfirm,exact,Bloquer,Block
+lookup,verifiedMark,exact,Vérifié,
+lookup,promoted,contains,Sponsorisé,Promoted
+ui,popupSubtitle,,Contrôles du fil LinkedIn,LinkedIn feed controls
+ui,feedSettingsLabel,,Paramètres du fil,Feed settings
+ui,enableButtonsLabel,,Activer les boutons dans le fil,Enable Buttons in Feed
+ui,enableButtonsDesc,,Afficher Ne plus suivre et Bloquer sur les publications,Show Unfollow and Block on posts
+ui,originalAuthorLabel,,Bloquer l'auteur d'origine,Block on Original Author
+ui,originalAuthorDesc,,Afficher Bloquer sur l'auteur d'origine d'un repost ou d'un j'aime,Show Block on the original author of a repost or like
+ui,toolbarOrderLabel,,Inverser l'ordre de la barre,Reverse Toolbar Order
+ui,toolbarOrderDesc,,Échanger les deux groupes de boutons,Swap the two button groups
+ui,debugLabel,,Mode débogage,Debug Mode
+ui,debugDesc,,Afficher les logs et les aides dans la console,Show console logs and helpers
+ui,languageLabel,,Langue,Language
+ui,languageDesc,,Langue du popup et des boutons du fil,Language of the popup and feed buttons
+ui,blockedCountLabel,,Profils bloqués,Blocked profiles
+ui,viewBlockedLabel,,Voir les profils bloqués,View Blocked Profiles
+ui,toastBlockStartFailed,,Impossible de démarrer le blocage,Block failed to start
+ui,toastBlocked,,Profil bloqué,Blocked successfully
+ui,toastBlockFailed,,Le blocage a échoué,Block failed
+ui,missingProfileUrl,,URL de profil manquante pour cette publication,Missing profile URL for this post
+ui,optionsAction,,Options,Options
+ui,unfollowAction,,Ne plus suivre {name},Unfollow {name}
+ui,blockAction,,Bloquer {name},Block {name}
