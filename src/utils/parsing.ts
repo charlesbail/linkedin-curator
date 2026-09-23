@@ -5,7 +5,7 @@
  * takes plain data in and returns plain data out, so it can be unit tested
  * and reused from content_scripts, background, or the popup.
  */
-import { PROMOTED_TEXT } from './selectors';
+import { LINKEDIN_LOOKUPS, matchesLookup } from './linkedinPhrases';
 
 /** Snapshot of a single feed post, extracted from the DOM by a content script. */
 export interface FeedPostInfo {
@@ -28,13 +28,15 @@ export function containsKeyword(text: string, keywords: readonly string[]): bool
 }
 
 export function isPromotedPost(supplementaryInfo: string): boolean {
-  return normalizeText(supplementaryInfo).toLowerCase().includes(PROMOTED_TEXT.toLowerCase());
+  return matchesLookup(supplementaryInfo, LINKEDIN_LOOKUPS.promoted);
 }
 
-const RESHARE_PATTERN = /(reacted to this|commented on this|likes this|reposted this)/i;
-
+/** True when the header phrase marks a repost or a reaction. Direct posts match neither list. */
 export function isReshare(headerText: string): boolean {
-  return RESHARE_PATTERN.test(normalizeText(headerText));
+  return (
+    matchesLookup(headerText, LINKEDIN_LOOKUPS.repostHeader) ||
+    matchesLookup(headerText, LINKEDIN_LOOKUPS.likedHeader)
+  );
 }
 
 /**

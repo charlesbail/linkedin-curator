@@ -10,6 +10,7 @@
  * page DOM automation lives in content_scripts/blockAutomation.ts.
  */
 import { runBlockAutomation } from '../content_scripts/blockAutomation';
+import { blockAutomationPhrases } from '../utils/linkedinPhrases';
 import { DEFAULT_STATE, getState, incrementBlockedProfileCount, setState } from '../utils/storage';
 import { debugLog, debugWarn } from '../utils/debug';
 
@@ -108,7 +109,11 @@ async function handleBlockProfileRequest(
     await debugLog(`${LOG_PREFIX} injecting block automation into tab ${tabId}`);
     const result = await runWithTimeout(
       chrome.scripting
-        .executeScript({ target: { tabId }, func: runBlockAutomation, args: [requestId, name] })
+        .executeScript({
+          target: { tabId },
+          func: runBlockAutomation,
+          args: [requestId, name, blockAutomationPhrases()],
+        })
         .then((results) => results[0]?.result),
       AUTOMATION_TIMEOUT_MS,
     );

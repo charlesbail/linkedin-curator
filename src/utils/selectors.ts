@@ -17,5 +17,3 @@ export const FEED_SELECTORS = {
   /** "X reacted to this" / "X commented on this" reshare header. */
   reshareHeader: '.update-components-header__text-view',
 } as const;
-
-export const PROMOTED_TEXT = 'Promoted';

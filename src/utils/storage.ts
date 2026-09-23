@@ -5,6 +5,7 @@
  * these helpers instead of calling chrome.storage.local directly, so the
  * shape of persisted state only needs to change in one place.
  */
+import type { Locale } from './linkedinPhrases';
 
 export interface CuratorState {
   /**
@@ -24,6 +25,11 @@ export interface CuratorState {
   reverseToolbarOrder: boolean;
   /** Enables console logs and debug helpers throughout the extension. */
   debugMode: boolean;
+  /**
+   * Popup and feed-button language. Null follows the browser language,
+   * then English when that language is not one of the shipped locales.
+   */
+  popupLocale: Locale | null;
   /** Number of profiles this extension has successfully blocked. */
   blockedProfileCount: number;
 }
@@ -33,6 +39,7 @@ export const DEFAULT_STATE: CuratorState = {
   enableBlockOnOriginalAuthor: true,
   reverseToolbarOrder: false,
   debugMode: false,
+  popupLocale: null,
   blockedProfileCount: 0,
 };
 

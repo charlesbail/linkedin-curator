@@ -14,10 +14,18 @@
  * linkedin-dom-mocks/profile-actions.html.html (the "Plus" overflow
  * button), profile-submenu.html.html (the "Bloquer {name}" menu item),
  * and block-modal.html.html (the confirmation dialog's "Bloquer" button).
+ *
+ * Phrase lists are passed in because this function cannot import them:
+ * Chrome re-executes only this function's source in the profile tab.
  */
 export async function runBlockAutomation(
   requestId: string,
   targetName: string,
+  phrases: {
+    plusLabels: readonly string[];
+    blockMenuPrefixes: readonly string[];
+    blockConfirmLabels: readonly string[];
+  },
 ): Promise<{ requestId: string; success: boolean; reason?: string }> {
   const LOG_PREFIX = '[Aufwieder-zen:blockAutomation]';
 
@@ -43,6 +51,25 @@ export async function runBlockAutomation(
 
   function normalizeText(raw: string): string {
     return raw.replace(/\s+/g, ' ').trim();
+  }
+
+  function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function equalsAny(text: string, labels: readonly string[]): boolean {
+    const haystack = text.toLowerCase();
+    return labels.some((label) => haystack === label.trim().toLowerCase());
+  }
+
+  function capturePrefixedName(text: string, prefixes: readonly string[]): string | null {
+    for (const prefix of prefixes) {
+      const stem = prefix.trim();
+      if (!stem) continue;
+      const captured = new RegExp(`^${escapeRegExp(stem)}\\s+(.+)$`, 'i').exec(text)?.[1]?.trim();
+      if (captured) return captured;
+    }
+    return null;
   }
 
   async function waitFor<T>(getValue: () => T | null | undefined, retries: number, delayMs: number): Promise<T | null> {
@@ -87,7 +114,7 @@ export async function runBlockAutomation(
    *  child — match on its own text content instead. */
   function findPlusButton(): HTMLElement | null {
     const buttons = Array.from(document.querySelectorAll<HTMLElement>('button[aria-expanded]'));
-    return buttons.find((b) => normalizeText(b.textContent ?? '').toLowerCase() === 'plus') ?? null;
+    return buttons.find((b) => equalsAny(normalizeText(b.textContent ?? ''), phrases.plusLabels)) ?? null;
   }
 
   /** Matches "Bloquer {name}" menu items; profile-submenu.html.html shows
@@ -98,8 +125,8 @@ export async function runBlockAutomation(
     const candidates = items
       .map((item) => {
         const text = normalizeText(item.textContent ?? '');
-        const match = /^Bloquer\s+(.+)$/i.exec(text);
-        return match ? { item, capturedName: match[1] ?? '' } : null;
+        const capturedName = capturePrefixedName(text, phrases.blockMenuPrefixes);
+        return capturedName ? { item, capturedName } : null;
       })
       .filter((entry): entry is { item: HTMLElement; capturedName: string } => entry !== null);
 
@@ -119,7 +146,7 @@ export async function runBlockAutomation(
     const buttons = Array.from(dialog.querySelectorAll<HTMLElement>('button')).filter(
       (b) => !b.hasAttribute('aria-label'),
     );
-    const byText = buttons.find((b) => normalizeText(b.textContent ?? '').toLowerCase() === 'bloquer');
+    const byText = buttons.find((b) => equalsAny(normalizeText(b.textContent ?? ''), phrases.blockConfirmLabels));
     if (byText) return byText;
     return buttons[1] ?? null;
   }
