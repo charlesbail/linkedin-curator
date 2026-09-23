@@ -1,4 +1,5 @@
-/* Injected into the LinkedIn feed page.
+/* Injected on linkedin.com. The post scan only runs on the feed;
+   these rules only match the extension's own toolbar.
    content.ts mirrors the curator state onto <html data-aufwiederzen-*>
    attributes; feature styles (fade-out animation) should key off those
    attributes here as they're implemented. */

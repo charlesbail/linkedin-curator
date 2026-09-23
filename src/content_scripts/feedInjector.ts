@@ -19,6 +19,7 @@ import {
   type ParsedLinkedInPost,
   type ProfileRef,
 } from '../utils/domParsers';
+import { isLinkedInFeedUrl } from '../utils/parsing';
 import { getState, onStateChanged, type CuratorState } from '../utils/storage';
 import { debugLog, debugWarn } from '../utils/debug';
 
@@ -50,6 +51,8 @@ const MENU_POLL_OPTIONS = { retries: 15, delayMs: 200 };
 let enabled = false;
 let observer: MutationObserver | null = null;
 let scanScheduled = false;
+/** Bumped on every start/stop so an in-flight scan bails out after a navigation away from the feed. */
+let observationGeneration = 0;
 
 /** Post containers awaiting a BLOCK_PROFILE_RESULT from background.ts,
  *  keyed by the requestId sent with the original BLOCK_PROFILE_REQUEST. */
@@ -516,6 +519,10 @@ async function injectActionButtons(
     ownedButtons.push(buildUnfollowButton(postContainer, profile));
   }
   ownedButtons.push(await buildBlockButton(postContainer, profile));
+  if (!enabled || !isOnFeed() || !toolbar.isConnected) {
+    toolbar.remove();
+    return;
+  }
   appendToolbarGroup(toolbar, nativeButtons);
   appendToolbarGroup(toolbar, ownedButtons);
 
@@ -551,17 +558,28 @@ async function processParsedPost(parsed: ParsedLinkedInPost): Promise<void> {
   }
 }
 
-async function processContainer(container: Element): Promise<void> {
+async function processContainer(container: Element, generation: number): Promise<void> {
+  if (generation !== observationGeneration || !isOnFeed()) return;
   if (container.hasAttribute(PROCESSED_ATTR)) return;
   container.setAttribute(PROCESSED_ATTR, 'true');
-  await processParsedPost(await parseLinkedInPost(container));
+  const parsed = await parseLinkedInPost(container);
+  if (generation !== observationGeneration || !isOnFeed()) {
+    container.removeAttribute(PROCESSED_ATTR);
+    return;
+  }
+  await processParsedPost(parsed);
 }
 
-async function scanFeedForNewPosts(): Promise<void> {
-  if (!enabled) return;
+function isOnFeed(): boolean {
+  return isLinkedInFeedUrl(window.location.href);
+}
+
+async function scanFeedForNewPosts(generation: number): Promise<void> {
+  if (!enabled || generation !== observationGeneration || !isOnFeed()) return;
   const containers = await findPostContainers(document);
   for (const container of containers) {
-    await processContainer(container);
+    if (generation !== observationGeneration) return;
+    await processContainer(container, generation);
   }
 }
 
@@ -573,9 +591,10 @@ async function scanFeedForNewPosts(): Promise<void> {
 function scheduleScan(): void {
   if (scanScheduled) return;
   scanScheduled = true;
+  const generation = observationGeneration;
   queueMicrotask(() => {
     scanScheduled = false;
-    void scanFeedForNewPosts();
+    void scanFeedForNewPosts(generation);
   });
 }
 
@@ -603,29 +622,66 @@ async function removeInjectedButtons(): Promise<void> {
   await debugLog(`${LOG_PREFIX} removed previously injected toolbars`);
 }
 
-async function startObserving(): Promise<void> {
-  await scanFeedForNewPosts();
-
-  if (observer) return;
+async function startObserving(generation: number): Promise<void> {
+  if (generation !== observationGeneration) return;
+  await scanFeedForNewPosts(generation);
+  if (generation !== observationGeneration || observer) return;
   observer = new MutationObserver(() => scheduleScan());
   observer.observe(document.body, { childList: true, subtree: true });
   await debugLog(`${LOG_PREFIX} started observing the feed for new posts`);
 }
 
 async function stopObserving(): Promise<void> {
-  observer?.disconnect();
+  if (!observer) return;
+  observer.disconnect();
   observer = null;
   await debugLog(`${LOG_PREFIX} stopped observing the feed`);
+}
+
+/**
+ * Content scripts are injected once per document. LinkedIn's navbar is a
+ * same-document navigation, so a visit that started on /jobs/ never
+ * re-runs this file when the URL becomes /feed/. Re-check the URL here
+ * and only scan while it is the feed.
+ */
+async function syncObservation(): Promise<void> {
+  const generation = ++observationGeneration;
+  if (enabled && isOnFeed()) {
+    await startObserving(generation);
+    return;
+  }
+
+  const hadObserver = observer !== null;
+  await stopObserving();
+  if (generation !== observationGeneration) return;
+  if (hadObserver || document.querySelector(`[${PROCESSED_ATTR}]`)) {
+    await removeInjectedButtons();
+  }
+}
+
+function watchClientNavigations(): void {
+  const navigation = (
+    window as Window & {
+      navigation?: { addEventListener(type: string, listener: () => void): void };
+    }
+  ).navigation;
+  const onNavigate = (): void => {
+    void syncObservation();
+  };
+  navigation?.addEventListener('navigatesuccess', onNavigate);
+  window.addEventListener('popstate', onNavigate);
 }
 
 async function applyEnabledState(nextEnabled: boolean): Promise<void> {
   enabled = nextEnabled;
   if (enabled) {
-    await startObserving();
-  } else {
-    await stopObserving();
-    await removeInjectedButtons();
+    await syncObservation();
+    return;
   }
+  const generation = ++observationGeneration;
+  await stopObserving();
+  if (generation !== observationGeneration) return;
+  await removeInjectedButtons();
 }
 
 chrome.runtime.onMessage.addListener(
@@ -646,6 +702,7 @@ onStateChanged((state) => {
 });
 
 async function init(): Promise<void> {
+  watchClientNavigations();
   const state = await getState();
   await applyEnabledState(state.enableButtonsInFeed);
 }

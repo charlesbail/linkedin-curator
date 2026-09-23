@@ -36,3 +36,24 @@ const RESHARE_PATTERN = /(reacted to this|commented on this|likes this|reposted 
 export function isReshare(headerText: string): boolean {
   return RESHARE_PATTERN.test(normalizeText(headerText));
 }
+
+/**
+ * True for LinkedIn's home feed: `/`, `/feed`, and `/feed/...` (a single
+ * update or a hashtag feed). Other app routes (`/jobs/`, `/in/`,
+ * `/messaging/`) are false so a content script injected on every
+ * linkedin.com document can ignore them.
+ */
+export function isLinkedInFeedUrl(url: string): boolean {
+  let pathname: string;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') return false;
+    if (parsed.hostname !== 'www.linkedin.com' && parsed.hostname !== 'linkedin.com') return false;
+    pathname = parsed.pathname;
+  } catch {
+    return false;
+  }
+
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  return normalized === '/' || normalized === '/feed' || normalized.startsWith('/feed/');
+}
