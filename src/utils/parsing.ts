@@ -58,6 +58,23 @@ export function isLinkedInFeedUrl(url: string): boolean {
   return normalized === '/' || normalized === '/feed' || normalized.startsWith('/feed/');
 }
 
+/** https://www.linkedin.com/in/... with search and hash removed, or null. */
+export function canonicalLinkedInProfileUrl(raw: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw, 'https://www.linkedin.com');
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'https:') return null;
+  if (parsed.username !== '' || parsed.password !== '') return null;
+  if (parsed.hostname !== 'www.linkedin.com') return null;
+  if (!parsed.pathname.startsWith('/in/') || parsed.pathname.includes('..')) return null;
+  parsed.search = '';
+  parsed.hash = '';
+  return parsed.toString();
+}
+
 /** Path only. Query and hash are dropped because LinkedIn puts member URNs there. */
 export function profilePathForLog(url: string | null): string {
   if (!url) return 'none';

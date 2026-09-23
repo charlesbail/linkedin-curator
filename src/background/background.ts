@@ -12,11 +12,10 @@
 import { runBlockAutomation } from '../content_scripts/blockAutomation';
 import { DEFAULT_STATE, getState, incrementBlockedProfileCount, setState } from '../utils/storage';
 import { debugLog, debugWarn } from '../utils/debug';
-import { profilePathForLog } from '../utils/parsing';
+import { canonicalLinkedInProfileUrl, profilePathForLog } from '../utils/parsing';
 
 const LOG_PREFIX = '[Aufwieder-zen:background]';
 const LINKEDIN_URL_PATTERN = 'https://www.linkedin.com/*';
-const PROFILE_URL_PATTERN = /^https:\/\/(?:www\.)?linkedin\.com\/in\//i;
 const TAB_LOAD_TIMEOUT_MS = 15000;
 const AUTOMATION_TIMEOUT_MS = 20000;
 
@@ -86,14 +85,15 @@ async function handleBlockProfileRequest(
   message: Extract<BackgroundMessage, { type: 'BLOCK_PROFILE_REQUEST' }>,
   feedTabId: number,
 ): Promise<void> {
-  const { requestId, profileUrl, name } = message;
+  const { requestId, name } = message;
+  const profileUrl = canonicalLinkedInProfileUrl(message.profileUrl);
   await debugLog(
     `${LOG_PREFIX} BLOCK_PROFILE_REQUEST received (${requestId})`,
     profilePathForLog(profileUrl),
   );
 
-  if (!PROFILE_URL_PATTERN.test(profileUrl)) {
-    await debugWarn(`${LOG_PREFIX} refusing to open non-profile URL`, profilePathForLog(profileUrl));
+  if (!profileUrl) {
+    await debugWarn(`${LOG_PREFIX} refusing to open non-profile URL`, profilePathForLog(message.profileUrl));
     notifyFeedTab(feedTabId, { type: 'BLOCK_PROFILE_RESULT', requestId, success: false, reason: 'invalid-url' });
     return;
   }
