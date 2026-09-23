@@ -398,7 +398,7 @@ function buildOwnedToolbarButton(
 function buildUnfollowButton(postContainer: Element, profile: ProfileRef): HTMLButtonElement {
   return buildOwnedToolbarButton(
     'user-minus',
-    `Ne plus suivre ${profile.name} (Aufwieder-zen)`,
+    `Ne plus suivre ${profile.name}`,
     async () => {
       console.log(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
       await performUnfollow(profile, postContainer);
@@ -409,7 +409,7 @@ function buildUnfollowButton(postContainer: Element, profile: ProfileRef): HTMLB
 function buildBlockButton(postContainer: Element, profile: ProfileRef): HTMLButtonElement {
   const button = buildOwnedToolbarButton(
     'ban',
-    `Bloquer ${profile.name} (Aufwieder-zen)`,
+    `Bloquer ${profile.name}`,
     async (blockButton) => {
       const profileUrl = profile.profileUrl;
       if (!profileUrl) return;
