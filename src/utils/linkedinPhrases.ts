@@ -146,27 +146,28 @@ export function translate(key: UiKey, locale: Locale, vars?: Readonly<Record<str
 export const LINKEDIN_LOOKUPS = {
   hidePost: {
     match: 'prefix',
-    phrases: phrases(['Masquer le post de {name}', 'Masquer les posts de {name}'], []),
+    phrases: phrases(
+      ['Masquer le post de {name}', 'Masquer les posts de {name}'],
+      ['Hide post by {name}', 'Hide posts by {name}'],
+    ),
   },
   openPostMenu: {
     match: 'exact',
-    phrases: phrases(['Options'], []),
+    phrases: phrases(['Options'], ['Options']),
   },
   openPostMenuLegacy: {
     match: 'prefix',
-    phrases: phrases(['Ouvrir le menu de commandes pour le post de {name}'], []),
+    phrases: phrases(
+      ['Ouvrir le menu de commandes pour le post de {name}'],
+      ['Open control menu for post by {name}'],
+    ),
   },
   /** Header fragments. A match classifies the post as a repost. */
   repostHeader: {
     match: 'contains',
     phrases: phrases(
-      [
-        'a ajouté un commentaire',
-        'a reposté ceci',
-        'a republié ceci',
-        'a partagé ceci',
-      ],
-      [],
+      ['a ajouté un commentaire', 'a reposté ceci', 'a republié ceci', 'a partagé ceci'],
+      ['commented', 'reposted th', 'reposted th', 'shared'],
     ),
   },
   /** Header fragments. A match classifies the post as a like or other reaction. */
@@ -174,24 +175,24 @@ export const LINKEDIN_LOOKUPS = {
     match: 'contains',
     phrases: phrases(
       ['aime ce', 'trouve ce', 'célèbre ce', 'soutient ce', 'adore ce'],
-      [],
+      ['likes th', 'finds th', 'celebrates th', 'supports th', 'loves th'],
     ),
   },
   unfollowMenu: {
     match: 'prefix',
-    phrases: phrases(['Ne plus suivre {name}'], []),
+    phrases: phrases(['Ne plus suivre {name}'], ['Unfollow {name}']),
   },
   plusButton: {
     match: 'exact',
-    phrases: phrases(['Plus'], []),
+    phrases: phrases(['Plus'], ['More']),
   },
   blockMenu: {
     match: 'prefix',
-    phrases: phrases(['Bloquer {name}'], []),
+    phrases: phrases(['Bloquer {name}'], ['Block {name}']),
   },
   blockConfirm: {
     match: 'exact',
-    phrases: phrases(['Bloquer'], []),
+    phrases: phrases(['Bloquer'], ['Block']),
   },
   verifiedMark: {
     match: 'exact',
@@ -199,7 +200,7 @@ export const LINKEDIN_LOOKUPS = {
   },
   promoted: {
     match: 'contains',
-    phrases: phrases([], ['Promoted']),
+    phrases: phrases(['Sponsorisé'], ['Promoted']),
   },
 } as const satisfies Record<string, PhraseLookup>;
 

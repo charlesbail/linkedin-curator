@@ -1,23 +1,23 @@
 ﻿section,id,match,fr,en
-lookup,hidePost,prefix,Masquer le post de {name},
-lookup,hidePost,prefix,Masquer les posts de {name},
-lookup,openPostMenu,exact,Options,
-lookup,openPostMenuLegacy,prefix,Ouvrir le menu de commandes pour le post de {name},
-lookup,repostHeader,contains,a ajouté un commentaire,
-lookup,repostHeader,contains,a reposté ceci,
-lookup,repostHeader,contains,a republié ceci,
-lookup,repostHeader,contains,a partagé ceci,
-lookup,likedHeader,contains,aime ce,
-lookup,likedHeader,contains,trouve ce,
-lookup,likedHeader,contains,célèbre ce,
-lookup,likedHeader,contains,soutient ce,
-lookup,likedHeader,contains,adore ce,
-lookup,unfollowMenu,prefix,Ne plus suivre {name},
-lookup,plusButton,exact,Plus,
-lookup,blockMenu,prefix,Bloquer {name},
-lookup,blockConfirm,exact,Bloquer,
+lookup,hidePost,prefix,Masquer le post de {name},Hide post by {name}
+lookup,hidePost,prefix,Masquer les posts de {name},Hide posts by {name}
+lookup,openPostMenu,exact,Options,Options
+lookup,openPostMenuLegacy,prefix,Ouvrir le menu de commandes pour le post de {name},Open control menu for post by {name}
+lookup,repostHeader,contains,a ajouté un commentaire,commented
+lookup,repostHeader,contains,a reposté ceci,reposted th
+lookup,repostHeader,contains,a republié ceci,reposted th
+lookup,repostHeader,contains,a partagé ceci,shared
+lookup,likedHeader,contains,aime ce,likes th
+lookup,likedHeader,contains,trouve ce,finds th
+lookup,likedHeader,contains,célèbre ce,celebrates th
+lookup,likedHeader,contains,soutient ce,supports th
+lookup,likedHeader,contains,adore ce,loves th
+lookup,unfollowMenu,prefix,Ne plus suivre {name},Unfollow {name}
+lookup,plusButton,exact,Plus,More
+lookup,blockMenu,prefix,Bloquer {name},Block {name}
+lookup,blockConfirm,exact,Bloquer,Block
 lookup,verifiedMark,exact,Vérifié,
-lookup,promoted,contains,,Promoted
+lookup,promoted,contains,Sponsorisé,Promoted
 ui,popupSubtitle,,Contrôles du fil LinkedIn,LinkedIn feed controls
 ui,feedSettingsLabel,,Paramètres du fil,Feed settings
 ui,enableButtonsLabel,,Activer les boutons dans le fil,Enable Buttons in Feed
