@@ -57,3 +57,17 @@ export function isLinkedInFeedUrl(url: string): boolean {
   const normalized = pathname.replace(/\/+$/, '') || '/';
   return normalized === '/' || normalized === '/feed' || normalized.startsWith('/feed/');
 }
+
+/** Path only. Query and hash are dropped because LinkedIn puts member URNs there. */
+export function profilePathForLog(url: string | null): string {
+  if (!url) return 'none';
+  try {
+    const parsed = new URL(url, 'https://www.linkedin.com');
+    if (parsed.hostname !== 'www.linkedin.com' && parsed.hostname !== 'linkedin.com') {
+      return 'non-linkedin';
+    }
+    return parsed.pathname;
+  } catch {
+    return 'invalid';
+  }
+}

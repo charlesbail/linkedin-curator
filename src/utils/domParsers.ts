@@ -18,7 +18,7 @@
  * fallbacks below match French phrasing. Extend the pattern lists as more
  * locales/reaction verbs are observed.
  */
-import { normalizeText } from './parsing';
+import { normalizeText, profilePathForLog } from './parsing';
 import { debugLog, debugWarn } from './debug';
 
 const LOG_PREFIX = '[Aufwieder-zen:domParsers]';
@@ -287,12 +287,16 @@ async function extractProfileRef(block: Element | null, label: string): Promise<
   const kind = classifyAuthorUrl(profileUrl);
 
   if (!name && !profileUrl) {
-    await debugWarn(`${LOG_PREFIX} extractProfileRef: could not find "${label}" in block`, block);
+    await debugWarn(`${LOG_PREFIX} extractProfileRef: could not find "${label}" in block`);
     return null;
   }
 
   const ref: ProfileRef = { name, profileUrl, kind };
-  await debugLog(`${LOG_PREFIX} extractProfileRef: found ${label} ->`, ref);
+  await debugLog(
+    `${LOG_PREFIX} extractProfileRef: found ${label}`,
+    ref.name,
+    profilePathForLog(ref.profileUrl),
+  );
   return ref;
 }
 
@@ -311,7 +315,7 @@ export function isPersonAuthor(ref: ProfileRef | null): boolean {
 export async function identifyPostType(container: Element): Promise<PostType> {
   const headerRow = getActorHeaderRow(container);
   if (!headerRow) {
-    await debugWarn(`${LOG_PREFIX} identifyPostType: no header row found; type is unknown`, container);
+    await debugWarn(`${LOG_PREFIX} identifyPostType: no header row found; type is unknown`);
     return 'unknown';
   }
 
@@ -425,6 +429,11 @@ export async function parseLinkedInPost(container: Element): Promise<ParsedLinke
     originalAuthor,
     originalAuthorElement,
   };
-  await debugLog(`${LOG_PREFIX} parseLinkedInPost: parsed post ->`, parsed);
+  await debugLog(
+    `${LOG_PREFIX} parseLinkedInPost: parsed post`,
+    parsed.type,
+    profilePathForLog(parsed.author?.profileUrl ?? null),
+    profilePathForLog(parsed.originalAuthor?.profileUrl ?? null),
+  );
   return parsed;
 }
