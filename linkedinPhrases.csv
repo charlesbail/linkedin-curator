@@ -35,6 +35,8 @@ ui,viewBlockedLabel,,Voir les profils bloqués,View Blocked Profiles
 ui,toastBlockStartFailed,,Impossible de démarrer le blocage,Block failed to start
 ui,toastBlocked,,Profil bloqué,Blocked successfully
 ui,toastBlockFailed,,Le blocage a échoué,Block failed
+ui,unsupportedLinkedInLanguage,,Cette extension ne prend en charge que le FR et l'EN pour le moment.,This extension only supports FR and EN for now.
+ui,unsupportedLinkedInLanguageAction,,Passez LinkedIn en anglais.,Switch LinkedIn to English.
 ui,missingProfileUrl,,URL de profil manquante pour cette publication,Missing profile URL for this post
 ui,optionsAction,,Options,Options
 ui,unfollowAction,,Ne plus suivre {name},Unfollow {name}

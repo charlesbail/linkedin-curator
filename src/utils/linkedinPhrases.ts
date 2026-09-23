@@ -226,6 +226,11 @@ export const UI_TEXT = {
   toastBlockStartFailed: ui("Impossible de démarrer le blocage", 'Block failed to start'),
   toastBlocked: ui('Profil bloqué', 'Blocked successfully'),
   toastBlockFailed: ui('Le blocage a échoué', 'Block failed'),
+  unsupportedLinkedInLanguage: ui(
+    "Cette extension ne prend en charge que le FR et l'EN pour le moment.",
+    'This extension only supports FR and EN for now.',
+  ),
+  unsupportedLinkedInLanguageAction: ui('Passez LinkedIn en anglais.', 'Switch LinkedIn to English.'),
   missingProfileUrl: ui('URL de profil manquante pour cette publication', 'Missing profile URL for this post'),
   optionsAction: ui('Options', 'Options'),
   unfollowAction: ui('Ne plus suivre {name}', 'Unfollow {name}'),
