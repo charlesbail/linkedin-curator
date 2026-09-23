@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DOM-reading utilities for LinkedIn feed posts.
  *
  * Read-only: nothing here mutates the DOM or calls chrome.* APIs, so it's
@@ -6,7 +6,7 @@
  * and to reuse from content_scripts once wired up.
  *
  * LinkedIn ships obfuscated, auto-generated class names (e.g. `_1957d19a`)
- * that are re-randomized on every deploy — they must never be used as
+ * that are re-randomized on every deploy â€” they must never be used as
  * selectors. Instead, every heuristic below anchors on things LinkedIn
  * can't easily randomize without breaking accessibility or i18n:
  *   - ARIA labels (e.g. "Masquer le post de {name}")
@@ -67,18 +67,19 @@ const OPEN_POST_MENU_BUTTON_PATTERN = /^Ouvrir le menu de commandes pour le post
  *  they did. Presence of one of these in the header row is what turns a
  *  post into a "Repost" or "Liked" post instead of a "Direct" one. */
 const REPOST_TEXT_PATTERNS = [
-  /a ajout[ée] un commentaire/i,
-  /a repost[ée] ceci/i,
-  /a republi[ée] ceci/i,
-  /a partag[ée] ceci/i,
+  /a ajout[Ã©e] un commentaire/i,
+  /a repost[Ã©e] ceci/i,
+  /a republi[Ã©e] ceci/i,
+  /a partag[Ã©e] ceci/i,
 ];
 
 const LIKED_TEXT_PATTERNS = [
   /aime\s+ce/i, // matches: "aime ce contenu", "aime cela", "aime ceci"
   /trouve\s+ce.*?pertinent/i, // matches: "trouve ce... pertinent"
-  /trouve\s+ce.*?dr[ôo]le/i, // matches: "trouve ce... drôle/drole"
+  /trouve\s+ce.*?dr[Ã´o]le/i, // matches: "trouve ce... drÃ´le/drole"
   /trouve\s+ce.*?inspirant/i, // matches: "trouve ce... inspirant"
-  /c[ée]l[èe]bre\s+ce/i, // matches: "célèbre ce contenu", "célèbre cela", "célèbre ceci"
+  /trouve\s+ce.*?instructif/i, // matches: "trouve ce contenu instructif"
+  /c[Ã©e]l[Ã¨e]bre\s+ce/i, // matches: "cÃ©lÃ¨bre ce contenu", "cÃ©lÃ¨bre cela", "cÃ©lÃ¨bre ceci"
   /soutient\s+ce/i, // matches: "soutient ce contenu", "soutient cela", "soutient ceci"
   /adore\s+ce/i, // matches: "adore ce contenu", "adore cela", "adore ceci"
 ];
@@ -141,8 +142,8 @@ export function findHidePostButton(root: ParentNode): HTMLElement | null {
 /**
  * Climbs from a "hide this post" button to the post's root container.
  *
- * Prefers the nearest `role="listitem"` ancestor — LinkedIn's own
- * structural marker for a feed entry — since real feed markup often
+ * Prefers the nearest `role="listitem"` ancestor â€” LinkedIn's own
+ * structural marker for a feed entry â€” since real feed markup often
  * inserts extra layout-only wrapper divs (e.g. `data-display-contents`)
  * between the header row and the actual post root, and the number of such
  * wrappers isn't stable across post shapes.
@@ -199,7 +200,7 @@ export function getActorHeaderRow(container: Element): Element | null {
   const hideButton = findHidePostButtons(container)[0];
   if (hideButton?.parentElement) return hideButton.parentElement;
 
-  // Fallback: no hide button found (locale/markup drift) — try the
+  // Fallback: no hide button found (locale/markup drift) â€” try the
   // "open post menu" button, which lives in the same row.
   const menuButton = findOpenPostMenuButtons(container)[0];
   return menuButton?.parentElement ?? null;
@@ -231,14 +232,14 @@ function findActorAnchor(block: Element): HTMLAnchorElement | null {
 
 /**
  * LinkedIn appends relationship/status suffixes to the visible name
- * ("Aurélien Marrast • Suivi", "Dan Saffer Vérifié"). The feed "..." menu
- * only prints the bare name ("Ne plus suivre Aurélien Marrast"), so we
+ * ("AurÃ©lien Marrast â€¢ Suivi", "Dan Saffer VÃ©rifiÃ©"). The feed "..." menu
+ * only prints the bare name ("Ne plus suivre AurÃ©lien Marrast"), so we
  * keep the part before the first bullet/pipe.
  */
 function barePersonName(raw: string): string {
   const normalized = normalizeText(raw);
-  const beforeStatus = normalized.split(/\s*[•|]\s*/)[0] ?? normalized;
-  return beforeStatus.replace(/\s+Vérifié.*$/i, '').trim();
+  const beforeStatus = normalized.split(/\s*[â€¢|]\s*/)[0] ?? normalized;
+  return beforeStatus.replace(/\s+VÃ©rifiÃ©.*$/i, '').trim();
 }
 
 /**
@@ -355,7 +356,7 @@ function menuItemUnfollowName(item: HTMLElement): string | null {
 /**
  * True when the menu item's "Ne plus suivre {name}" refers to the same
  * person. Comparison is bidirectional: the header name is often longer
- * than the menu label ("Aurélien Marrast • Suivi" vs "Aurélien Marrast").
+ * than the menu label ("AurÃ©lien Marrast â€¢ Suivi" vs "AurÃ©lien Marrast").
  */
 function unfollowNamesMatch(menuName: string, personName: string): boolean {
   const menu = menuName.toLowerCase();
@@ -381,7 +382,7 @@ export function findUnfollowMenuItem(root: ParentNode, personName: string): HTML
   const match =
     candidates.find((entry) => unfollowNamesMatch(entry.menuName, personName))?.item ??
     // The open menu belongs to the post whose "..." we just clicked, and
-    // LinkedIn renders a single "Ne plus suivre …" row for that actor.
+    // LinkedIn renders a single "Ne plus suivre â€¦" row for that actor.
     (candidates.length === 1 ? candidates[0]?.item : null) ??
     null;
 
