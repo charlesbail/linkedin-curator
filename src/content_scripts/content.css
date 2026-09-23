@@ -128,11 +128,12 @@ html[data-aufwiederzen-original-author-block-enabled='false']
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--danger {
-  color: #b3261e;
+  color: #434649;
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--danger:hover {
-  background-color: #fef2f2 !important;
+  background-color: #f7e2e2 !important;
+  color: #b93939 !important
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--danger:hover * {
@@ -154,7 +155,7 @@ html[data-aufwiederzen-original-author-block-enabled='false']
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--busy:disabled {
   cursor: wait;
   opacity: 1;
-  color: #b07a76;
+  color: #434649;
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn--busy:hover,
