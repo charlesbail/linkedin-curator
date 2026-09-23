@@ -14,10 +14,16 @@
  *   - structural relationships (header row -> <hr> -> original-author row)
  *   - visible text fallbacks (e.g. "aime ce contenu")
  *
- * Locale note: LinkedIn is currently viewed in French, so the text
- * fallbacks below match French phrasing. Extend the pattern lists as more
- * locales/reaction verbs are observed.
+ * Phrases LinkedIn renders (hide, unfollow, repost, like, …) live in
+ * utils/linkedinPhrases.ts. Every filled language is tried.
  */
+import {
+  LINKEDIN_LOOKUPS,
+  captureName,
+  matchesAnyLookup,
+  matchesLookup,
+  stripVerifiedMark,
+} from './linkedinPhrases';
 import { normalizeText } from './parsing';
 import { debugLog, debugWarn } from './debug';
 
@@ -57,34 +63,7 @@ export interface ParsedLinkedInPost {
   originalAuthorElement: Element | null;
 }
 
-/** Matches LinkedIn's hide-post button, which exists on every post type
- *  and always mentions the post's author by name. Driven by accessibility
- *  requirements, not styling. */
-const HIDE_POST_BUTTON_PATTERN = /^Masquer (?:le|les) posts? de\s+(.+)$/i;
-
-/** Matches LinkedIn's overflow ("...") button. The toolbar presents it as
- *  "Options". Older French markup still uses the long aria-label, so both
- *  are accepted. */
-const OPEN_POST_MENU_BUTTON_PATTERN =
-  /^(?:Options|Ouvrir le menu de commandes pour le post de\s+.+)$/i;
-
-/** Text phrases LinkedIn renders next to the actor's name to describe what
- *  they did. Presence of one of these in the header row is what turns a
- *  post into a "Repost" or "Liked" post instead of a "Direct" one. */
-const REPOST_TEXT_PATTERNS = [
-  /a ajout[ée] un commentaire/i,
-  /a repost[ée] ceci/i,
-  /a republi[ée] ceci/i,
-  /a partag[ée] ceci/i,
-];
-
-const LIKED_TEXT_PATTERNS = [
-  /aime\s+ce/i, // matches: "aime ce contenu", "aime cela", "aime ceci"
-  /trouve\s+ce/i, // matches: "trouve ce contenu instructif", "trouve ce pertinent", etc.
-  /c[ée]l[èe]bre\s+ce/i, // matches: "célèbre ceci", "célèbre cela", "célèbre ce contenu"
-  /soutient\s+ce/i, // matches: "soutient ce contenu", "soutient cela", "soutient ceci"
-  /adore\s+ce/i, // matches: "adore ce contenu", "adore cela", "adore ceci"
-];
+const OPEN_POST_MENU_LOOKUPS = [LINKEDIN_LOOKUPS.openPostMenu, LINKEDIN_LOOKUPS.openPostMenuLegacy] as const;
 
 const PROFILE_URL_PATTERN = /(?:^\/in\/)|(?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/in\/)/i;
 const COMPANY_URL_PATTERN = /(?:^\/company\/)|(?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/company\/)/i;
@@ -104,21 +83,17 @@ function classifyAuthorUrl(href: string | null): AuthorKind {
   return 'unknown';
 }
 
-function matchesAny(text: string, patterns: readonly RegExp[]): boolean {
-  return patterns.some((pattern) => pattern.test(text));
-}
-
 /** Finds every "hide this post" button under root, regardless of case. */
 function findHidePostButtons(root: ParentNode): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>('button[aria-label]')).filter((button) =>
-    HIDE_POST_BUTTON_PATTERN.test(button.getAttribute('aria-label') ?? ''),
+    matchesLookup(button.getAttribute('aria-label') ?? '', LINKEDIN_LOOKUPS.hidePost),
   );
 }
 
 /** Finds every "..." (open post command menu) button under root. */
 function findOpenPostMenuButtons(root: ParentNode): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>('button[aria-label]')).filter((button) =>
-    OPEN_POST_MENU_BUTTON_PATTERN.test(button.getAttribute('aria-label') ?? ''),
+    matchesAnyLookup(button.getAttribute('aria-label') ?? '', OPEN_POST_MENU_LOOKUPS),
   );
 }
 
@@ -241,7 +216,7 @@ function findActorAnchor(block: Element): HTMLAnchorElement | null {
 function barePersonName(raw: string): string {
   const normalized = normalizeText(raw);
   const beforeStatus = normalized.split(/\s*[•|]\s*/)[0] ?? normalized;
-  return beforeStatus.replace(/\s+Vérifié.*$/i, '').trim();
+  return stripVerifiedMark(beforeStatus);
 }
 
 /**
@@ -268,8 +243,8 @@ function extractNameFromBlock(block: Element, anchor: HTMLAnchorElement | null):
       (text) =>
         text.length > 0 &&
         text.length <= 80 &&
-        !matchesAny(text, REPOST_TEXT_PATTERNS) &&
-        !matchesAny(text, LIKED_TEXT_PATTERNS),
+        !matchesLookup(text, LINKEDIN_LOOKUPS.repostHeader) &&
+        !matchesLookup(text, LINKEDIN_LOOKUPS.likedHeader),
     );
 
   return candidates[0] ?? '';
@@ -317,12 +292,12 @@ export async function identifyPostType(container: Element): Promise<PostType> {
 
   const headerText = normalizeText(headerRow.textContent ?? '');
 
-  if (matchesAny(headerText, REPOST_TEXT_PATTERNS)) {
+  if (matchesLookup(headerText, LINKEDIN_LOOKUPS.repostHeader)) {
     await debugLog(`${LOG_PREFIX} identifyPostType: detected "repost"`);
     return 'repost';
   }
 
-  if (matchesAny(headerText, LIKED_TEXT_PATTERNS)) {
+  if (matchesLookup(headerText, LINKEDIN_LOOKUPS.likedHeader)) {
     await debugLog(`${LOG_PREFIX} identifyPostType: detected "liked"`);
     return 'liked';
   }
@@ -345,14 +320,9 @@ export async function extractOriginalAuthor(container: Element): Promise<Profile
   return await extractProfileRef(originalAuthorRow, 'original author');
 }
 
-/** Matches LinkedIn's "Unfollow" item inside a post's "..." command menu
- *  (see linkedin-dom-mocks/feed-submenu.html.html), capturing the name of
- *  the person it would unfollow. */
-const UNFOLLOW_MENU_ITEM_PATTERN = /^Ne plus suivre\s+(.+)$/i;
-
 function menuItemUnfollowName(item: HTMLElement): string | null {
-  const match = UNFOLLOW_MENU_ITEM_PATTERN.exec(normalizeText(item.textContent ?? ''));
-  return match?.[1] ? barePersonName(match[1]) : null;
+  const captured = captureName(item.textContent ?? '', LINKEDIN_LOOKUPS.unfollowMenu);
+  return captured ? barePersonName(captured) : null;
 }
 
 /**

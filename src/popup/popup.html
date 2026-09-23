@@ -11,15 +11,15 @@
         <span class="popup__logo" aria-hidden="true">A</span>
         <div class="popup__heading">
           <h1 class="popup__title">Aufwieder-zen</h1>
-          <p class="popup__subtitle">LinkedIn feed controls</p>
+          <p class="popup__subtitle" id="popup-subtitle">LinkedIn feed controls</p>
         </div>
       </header>
 
-      <section class="popup__card" aria-label="Feed settings">
+      <section class="popup__card" id="feed-settings" aria-label="Feed settings">
         <div class="popup__row">
           <div class="popup__row-text">
-            <label class="popup__row-label" for="buttons-toggle">Enable Buttons in Feed</label>
-            <p class="popup__row-desc">Show Unfollow and Block on posts</p>
+            <label class="popup__row-label" id="buttons-label" for="buttons-toggle">Enable Buttons in Feed</label>
+            <p class="popup__row-desc" id="buttons-desc">Show Unfollow and Block on posts</p>
           </div>
           <button
             type="button"
@@ -36,8 +36,10 @@
 
         <div class="popup__row">
           <div class="popup__row-text">
-            <label class="popup__row-label" for="original-author-block-toggle">Block on Original Author</label>
-            <p class="popup__row-desc">Show Block on the original author of a repost or like</p>
+            <label class="popup__row-label" id="original-author-label" for="original-author-block-toggle">
+              Block on Original Author
+            </label>
+            <p class="popup__row-desc" id="original-author-desc">Show Block on the original author of a repost or like</p>
           </div>
           <button
             type="button"
@@ -54,8 +56,8 @@
 
         <div class="popup__row">
           <div class="popup__row-text">
-            <label class="popup__row-label" for="toolbar-order-toggle">Reverse Toolbar Order</label>
-            <p class="popup__row-desc">Swap the two button groups</p>
+            <label class="popup__row-label" id="toolbar-order-label" for="toolbar-order-toggle">Reverse Toolbar Order</label>
+            <p class="popup__row-desc" id="toolbar-order-desc">Swap the two button groups</p>
           </div>
           <button
             type="button"
@@ -72,18 +74,35 @@
 
         <div class="popup__row">
           <div class="popup__row-text">
-            <label class="popup__row-label" for="debug-toggle">Debug Mode</label>
-            <p class="popup__row-desc">Show console logs and helpers</p>
+            <label class="popup__row-label" id="debug-label" for="debug-toggle">Debug Mode</label>
+            <p class="popup__row-desc" id="debug-desc">Show console logs and helpers</p>
           </div>
           <button type="button" role="switch" id="debug-toggle" class="switch" aria-checked="false">
             <span class="switch__thumb"></span>
           </button>
         </div>
+
+        <div class="popup__divider"></div>
+
+        <div class="popup__row">
+          <div class="popup__row-text">
+            <span class="popup__row-label" id="language-label">Language</span>
+            <p class="popup__row-desc" id="language-desc">Language of the popup and feed buttons</p>
+          </div>
+          <div class="popup__segment" role="radiogroup" aria-labelledby="language-label">
+            <button type="button" class="popup__segment-btn" role="radio" id="language-en" data-locale="en" aria-checked="true">
+              EN
+            </button>
+            <button type="button" class="popup__segment-btn" role="radio" id="language-fr" data-locale="fr" aria-checked="false">
+              FR
+            </button>
+          </div>
+        </div>
       </section>
 
       <footer class="popup__footer">
         <p class="popup__counter">
-          Profils bloqués :
+          <span id="blocked-count-label">Blocked profiles</span>
           <span class="popup__counter-value" id="blocked-profile-count">0</span>
         </p>
         <a
@@ -92,7 +111,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >
-          View Blocked Profiles
+          <span id="view-blocked-label">View Blocked Profiles</span>
           <span class="popup__link-arrow" aria-hidden="true">&rarr;</span>
         </a>
       </footer>

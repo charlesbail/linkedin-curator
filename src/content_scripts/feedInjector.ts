@@ -22,6 +22,8 @@ import {
   type ProfileRef,
 } from '../utils/domParsers';
 import { isLinkedInFeedUrl } from '../utils/parsing';
+import { resolveUiLocale, translate, type Locale } from '../utils/linkedinPhrases';
+import { getState, onStateChanged, type CuratorState } from '../utils/storage';
 import { debugLog, debugWarn } from '../utils/debug';
 
 const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
@@ -44,7 +46,14 @@ const ADOPTED_BTN_ATTR = 'data-aufwiederzen-adopted';
 const HIDDEN_NATIVE_ATTR = 'data-aufwiederzen-hidden';
 const ICON_ATTR = 'data-aufwiederzen-icon';
 const ORIGINAL_LABEL_ATTR = 'data-aufwiederzen-original-aria-label';
-const OPTIONS_BUTTON_LABEL = 'Options';
+const LABEL_KIND_ATTR = 'data-aufwiederzen-label-kind';
+const LABEL_NAME_ATTR = 'data-aufwiederzen-label-name';
+const MISSING_URL_ATTR = 'data-aufwiederzen-missing-url';
+
+type ToolbarLabelKind = 'options' | 'unfollow' | 'block';
+
+/** Language of labels we draw. Updated from storage and the browser language. */
+let uiLocale: Locale = 'en';
 
 /** How long to keep polling for the "..." popover menu to render before
  *  giving up: 15 attempts * 200ms = up to 3s, generous enough for a slow
@@ -233,7 +242,7 @@ async function performBlock(
     await debugWarn(`${LOG_PREFIX} performBlock: failed to reach background`, error);
     pendingBlockRequests.delete(requestId);
     setBlockButtonBusy(blockButton, false);
-    showToast('Block failed to start', 'error');
+    showToast(translate('toastBlockStartFailed', uiLocale), 'error');
   }
 }
 
@@ -248,12 +257,12 @@ async function handleBlockProfileResult(requestId: string, success: boolean, rea
 
   if (success) {
     await debugLog(`${LOG_PREFIX} handleBlockProfileResult: success (${requestId})`);
-    showToast('Blocked successfully', 'success');
+    showToast(translate('toastBlocked', uiLocale), 'success');
     await fadeOutAndHide(pending.postContainer);
   } else {
     await debugWarn(`${LOG_PREFIX} handleBlockProfileResult: failed (${requestId})`, reason);
     setBlockButtonBusy(pending.blockButton, false);
-    showToast('Block failed', 'error');
+    showToast(translate('toastBlockFailed', uiLocale), 'error');
   }
 }
 
@@ -334,6 +343,33 @@ function setBlockButtonBusy(button: HTMLButtonElement, busy: boolean): void {
   }
 }
 
+function localeFromState(state: CuratorState): Locale {
+  return resolveUiLocale(state.popupLocale, chrome.i18n.getUILanguage());
+}
+
+function labelText(kind: ToolbarLabelKind, name: string): string {
+  if (kind === 'options') return translate('optionsAction', uiLocale);
+  if (kind === 'unfollow') return translate('unfollowAction', uiLocale, { name });
+  return translate('blockAction', uiLocale, { name });
+}
+
+function tagToolbarLabel(button: HTMLElement, kind: ToolbarLabelKind, name = ''): void {
+  button.setAttribute(LABEL_KIND_ATTR, kind);
+  if (name) button.setAttribute(LABEL_NAME_ATTR, name);
+  else button.removeAttribute(LABEL_NAME_ATTR);
+  const label = labelText(kind, name);
+  button.setAttribute('aria-label', label);
+  button.title = button.hasAttribute(MISSING_URL_ATTR) ? translate('missingProfileUrl', uiLocale) : label;
+}
+
+function relabelInjectedButtons(): void {
+  document.querySelectorAll<HTMLElement>(`[${LABEL_KIND_ATTR}]`).forEach((button) => {
+    const kind = button.getAttribute(LABEL_KIND_ATTR);
+    if (kind !== 'options' && kind !== 'unfollow' && kind !== 'block') return;
+    tagToolbarLabel(button, kind, button.getAttribute(LABEL_NAME_ATTR) ?? '');
+  });
+}
+
 function adoptNativeToolbarButton(button: HTMLElement, icon: ToolbarIcon, displayLabel?: string): void {
   button.classList.add(TOOLBAR_BTN_CLASS);
   button.setAttribute(ADOPTED_BTN_ATTR, 'true');
@@ -359,6 +395,8 @@ function restoreNativeToolbarButton(button: HTMLElement): void {
   button.querySelectorAll(`[${HIDDEN_NATIVE_ATTR}]`).forEach((child) => child.removeAttribute(HIDDEN_NATIVE_ATTR));
   button.classList.remove(TOOLBAR_BTN_CLASS);
   button.removeAttribute(ADOPTED_BTN_ATTR);
+  button.removeAttribute(LABEL_KIND_ATTR);
+  button.removeAttribute(LABEL_NAME_ATTR);
   const originalLabel = button.getAttribute(ORIGINAL_LABEL_ATTR);
   if (originalLabel !== null) {
     if (originalLabel) button.setAttribute('aria-label', originalLabel);
@@ -398,20 +436,22 @@ function buildOwnedToolbarButton(
 }
 
 function buildUnfollowButton(postContainer: Element, profile: ProfileRef): HTMLButtonElement {
-  return buildOwnedToolbarButton(
+  const button = buildOwnedToolbarButton(
     'user-minus',
-    `Ne plus suivre ${profile.name}`,
+    translate('unfollowAction', uiLocale, { name: profile.name }),
     async () => {
       await debugLog(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
       await performUnfollow(profile, postContainer);
     },
   );
+  tagToolbarLabel(button, 'unfollow', profile.name);
+  return button;
 }
 
 async function buildBlockButton(postContainer: Element, profile: ProfileRef): Promise<HTMLButtonElement> {
   const button = buildOwnedToolbarButton(
     'ban',
-    `Bloquer ${profile.name}`,
+    translate('blockAction', uiLocale, { name: profile.name }),
     async (blockButton) => {
       const profileUrl = profile.profileUrl;
       if (!profileUrl) return;
@@ -423,9 +463,10 @@ async function buildBlockButton(postContainer: Element, profile: ProfileRef): Pr
   );
   if (!profile.profileUrl) {
     button.disabled = true;
-    button.title = 'Missing profile URL for this post';
+    button.setAttribute(MISSING_URL_ATTR, 'true');
     await debugWarn(`${LOG_PREFIX} "Block" disabled: missing profile URL for`, profile.name);
   }
+  tagToolbarLabel(button, 'block', profile.name);
   return button;
 }
 
@@ -537,7 +578,8 @@ async function injectActionButtons(
 
   const nativeButtons: HTMLElement[] = [];
   if (menuButton) {
-    adoptNativeToolbarButton(menuButton, 'more-horizontal', OPTIONS_BUTTON_LABEL);
+    adoptNativeToolbarButton(menuButton, 'more-horizontal', labelText('options', ''));
+    tagToolbarLabel(menuButton, 'options');
     nativeButtons.push(menuButton);
   }
   if (hideButton) {
@@ -713,6 +755,13 @@ chrome.runtime.onMessage.addListener(
 );
 
 async function init(): Promise<void> {
+  uiLocale = localeFromState(await getState());
+  onStateChanged((state) => {
+    const next = localeFromState(state);
+    if (next === uiLocale) return;
+    uiLocale = next;
+    relabelInjectedButtons();
+  });
   watchClientNavigations();
   await syncObservation();
 }
