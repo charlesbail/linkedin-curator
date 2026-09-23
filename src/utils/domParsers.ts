@@ -56,12 +56,16 @@ export interface ParsedLinkedInPost {
   originalAuthorElement: Element | null;
 }
 
-/** Matches LinkedIn's "..." and hide-post buttons, which exist on every
- *  post type and always mention the post's author by name. This is one of
- *  the most stable anchors available since it's driven by accessibility
+/** Matches LinkedIn's hide-post button, which exists on every post type
+ *  and always mentions the post's author by name. Driven by accessibility
  *  requirements, not styling. */
 const HIDE_POST_BUTTON_PATTERN = /^Masquer (?:le|les) posts? de\s+(.+)$/i;
-const OPEN_POST_MENU_BUTTON_PATTERN = /^Ouvrir le menu de commandes pour le post de\s+(.+)$/i;
+
+/** Matches LinkedIn's overflow ("...") button. The toolbar presents it as
+ *  "Options". Older French markup still uses the long aria-label, so both
+ *  are accepted. */
+const OPEN_POST_MENU_BUTTON_PATTERN =
+  /^(?:Options|Ouvrir le menu de commandes pour le post de\s+.+)$/i;
 
 /** Text phrases LinkedIn renders next to the actor's name to describe what
  *  they did. Presence of one of these in the header row is what turns a

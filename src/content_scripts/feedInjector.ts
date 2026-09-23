@@ -38,6 +38,8 @@ const OWNED_BTN_ATTR = 'data-aufwiederzen-owned';
 const ADOPTED_BTN_ATTR = 'data-aufwiederzen-adopted';
 const HIDDEN_NATIVE_ATTR = 'data-aufwiederzen-hidden';
 const ICON_ATTR = 'data-aufwiederzen-icon';
+const ORIGINAL_LABEL_ATTR = 'data-aufwiederzen-original-aria-label';
+const OPTIONS_BUTTON_LABEL = 'Options';
 
 /** How long to keep polling for the "..." popover menu to render before
  *  giving up: 15 attempts * 200ms = up to 3s, generous enough for a slow
@@ -330,10 +332,16 @@ function setBlockButtonBusy(button: HTMLButtonElement, busy: boolean): void {
   }
 }
 
-function adoptNativeToolbarButton(button: HTMLElement, icon: ToolbarIcon): void {
+function adoptNativeToolbarButton(button: HTMLElement, icon: ToolbarIcon, displayLabel?: string): void {
   button.classList.add(TOOLBAR_BTN_CLASS);
   button.setAttribute(ADOPTED_BTN_ATTR, 'true');
-  if (!button.title) {
+  if (displayLabel) {
+    if (!button.hasAttribute(ORIGINAL_LABEL_ATTR)) {
+      button.setAttribute(ORIGINAL_LABEL_ATTR, button.getAttribute('aria-label') ?? '');
+    }
+    button.setAttribute('aria-label', displayLabel);
+    button.title = displayLabel;
+  } else if (!button.title) {
     button.title = button.getAttribute('aria-label') ?? '';
   }
   Array.from(button.children).forEach((child) => {
@@ -349,6 +357,12 @@ function restoreNativeToolbarButton(button: HTMLElement): void {
   button.querySelectorAll(`[${HIDDEN_NATIVE_ATTR}]`).forEach((child) => child.removeAttribute(HIDDEN_NATIVE_ATTR));
   button.classList.remove(TOOLBAR_BTN_CLASS);
   button.removeAttribute(ADOPTED_BTN_ATTR);
+  const originalLabel = button.getAttribute(ORIGINAL_LABEL_ATTR);
+  if (originalLabel !== null) {
+    if (originalLabel) button.setAttribute('aria-label', originalLabel);
+    button.removeAttribute(ORIGINAL_LABEL_ATTR);
+    button.removeAttribute('title');
+  }
 }
 
 function buildOwnedToolbarButton(
@@ -498,7 +512,7 @@ function injectActionButtons(
 
   const nativeButtons: HTMLElement[] = [];
   if (menuButton) {
-    adoptNativeToolbarButton(menuButton, 'more-horizontal');
+    adoptNativeToolbarButton(menuButton, 'more-horizontal', OPTIONS_BUTTON_LABEL);
     nativeButtons.push(menuButton);
   }
   if (hideButton) {
