@@ -10,7 +10,7 @@ import { getState, setState, type CuratorState } from '../utils/storage';
 const buttonsToggle = document.getElementById('buttons-toggle') as HTMLButtonElement;
 const originalAuthorBlockToggle = document.getElementById('original-author-block-toggle') as HTMLButtonElement;
 const toolbarOrderToggle = document.getElementById('toolbar-order-toggle') as HTMLButtonElement;
-const fadeToggle = document.getElementById('fade-toggle') as HTMLButtonElement;
+const debugToggle = document.getElementById('debug-toggle') as HTMLButtonElement;
 
 function setSwitchChecked(toggle: HTMLButtonElement, checked: boolean): void {
   toggle.setAttribute('aria-checked', String(checked));
@@ -24,7 +24,7 @@ function renderState(state: CuratorState): void {
   setSwitchChecked(buttonsToggle, state.enableButtonsInFeed);
   setSwitchChecked(originalAuthorBlockToggle, state.enableBlockOnOriginalAuthor);
   setSwitchChecked(toolbarOrderToggle, state.reverseToolbarOrder);
-  setSwitchChecked(fadeToggle, state.enableFadeAnimation);
+  setSwitchChecked(debugToggle, state.debugMode);
 }
 
 async function notifyContentScripts(): Promise<void> {
@@ -48,6 +48,6 @@ function bindSwitch(toggle: HTMLButtonElement, patch: (checked: boolean) => Part
 bindSwitch(buttonsToggle, (checked) => ({ enableButtonsInFeed: checked }));
 bindSwitch(originalAuthorBlockToggle, (checked) => ({ enableBlockOnOriginalAuthor: checked }));
 bindSwitch(toolbarOrderToggle, (checked) => ({ reverseToolbarOrder: checked }));
-bindSwitch(fadeToggle, (checked) => ({ enableFadeAnimation: checked }));
+bindSwitch(debugToggle, (checked) => ({ debugMode: checked }));
 
 getState().then(renderState);

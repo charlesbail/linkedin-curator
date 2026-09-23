@@ -11,6 +11,7 @@
  */
 import { runBlockAutomation } from '../content_scripts/blockAutomation';
 import { DEFAULT_STATE, getState, setState } from '../utils/storage';
+import { debugLog, debugWarn } from '../utils/debug';
 
 const LOG_PREFIX = '[Aufwieder-zen:background]';
 const LINKEDIN_URL_PATTERN = 'https://www.linkedin.com/*';
@@ -50,7 +51,7 @@ chrome.runtime.onMessage.addListener((message: BackgroundMessage, sender, sendRe
   if (message?.type === 'BLOCK_PROFILE_REQUEST') {
     const feedTabId = sender.tab?.id;
     if (feedTabId === undefined) {
-      console.warn(`${LOG_PREFIX} BLOCK_PROFILE_REQUEST received with no sender tab id`, message);
+      void debugWarn(`${LOG_PREFIX} BLOCK_PROFILE_REQUEST received with no sender tab id`, message);
       return false;
     }
     handleBlockProfileRequest(message, feedTabId);
@@ -85,26 +86,26 @@ async function handleBlockProfileRequest(
   feedTabId: number,
 ): Promise<void> {
   const { requestId, profileUrl, name } = message;
-  console.log(`${LOG_PREFIX} BLOCK_PROFILE_REQUEST received for "${name}" (${requestId})`, profileUrl);
+  await debugLog(`${LOG_PREFIX} BLOCK_PROFILE_REQUEST received for "${name}" (${requestId})`, profileUrl);
 
   if (!PROFILE_URL_PATTERN.test(profileUrl)) {
-    console.warn(`${LOG_PREFIX} refusing to open non-profile URL`, profileUrl);
+    await debugWarn(`${LOG_PREFIX} refusing to open non-profile URL`, profileUrl);
     notifyFeedTab(feedTabId, { type: 'BLOCK_PROFILE_RESULT', requestId, success: false, reason: 'invalid-url' });
     return;
   }
 
   let createdWindow: chrome.windows.Window | undefined;
   try {
-    console.log(`${LOG_PREFIX} opening minimized window for`, profileUrl);
+    await debugLog(`${LOG_PREFIX} opening minimized window for`, profileUrl);
     createdWindow = await chrome.windows.create({ url: profileUrl, focused: false, state: 'minimized' });
     if (!createdWindow) throw new Error('failed to create automation window');
     const tabId = createdWindow.tabs?.[0]?.id;
     if (tabId === undefined) throw new Error('created window has no tab');
 
-    console.log(`${LOG_PREFIX} waiting for profile tab ${tabId} to finish loading`);
+    await debugLog(`${LOG_PREFIX} waiting for profile tab ${tabId} to finish loading`);
     await waitForTabLoad(tabId, TAB_LOAD_TIMEOUT_MS);
 
-    console.log(`${LOG_PREFIX} injecting block automation into tab ${tabId}`);
+    await debugLog(`${LOG_PREFIX} injecting block automation into tab ${tabId}`);
     const result = await runWithTimeout(
       chrome.scripting
         .executeScript({ target: { tabId }, func: runBlockAutomation, args: [requestId, name] })
@@ -113,7 +114,7 @@ async function handleBlockProfileRequest(
     );
 
     const success = result?.success ?? false;
-    console.log(`${LOG_PREFIX} automation finished for "${name}" -> success=${success}`, result?.reason ?? '');
+    await debugLog(`${LOG_PREFIX} automation finished for "${name}" -> success=${success}`, result?.reason ?? '');
 
     notifyFeedTab(feedTabId, {
       type: 'BLOCK_PROFILE_RESULT',
@@ -122,20 +123,20 @@ async function handleBlockProfileRequest(
       reason: result?.reason,
     });
   } catch (error) {
-    console.warn(`${LOG_PREFIX} block automation failed for "${name}"`, error);
+    await debugWarn(`${LOG_PREFIX} block automation failed for "${name}"`, error);
     notifyFeedTab(feedTabId, { type: 'BLOCK_PROFILE_RESULT', requestId, success: false, reason: 'exception' });
   } finally {
     if (createdWindow?.id !== undefined) {
-      console.log(`${LOG_PREFIX} closing automation window ${createdWindow.id}`);
+      await debugLog(`${LOG_PREFIX} closing automation window ${createdWindow.id}`);
       chrome.windows.remove(createdWindow.id).catch(() => {});
     }
   }
 }
 
 function notifyFeedTab(feedTabId: number, message: BlockProfileResultMessage): void {
-  console.log(`${LOG_PREFIX} notifying feed tab ${feedTabId}`, message);
-  chrome.tabs.sendMessage(feedTabId, message).catch((error) => {
-    console.warn(`${LOG_PREFIX} failed to notify feed tab ${feedTabId}`, error);
+  void debugLog(`${LOG_PREFIX} notifying feed tab ${feedTabId}`, message);
+  chrome.tabs.sendMessage(feedTabId, message).catch(async (error) => {
+    await debugWarn(`${LOG_PREFIX} failed to notify feed tab ${feedTabId}`, error);
   });
 }
 

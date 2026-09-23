@@ -20,6 +20,7 @@ import {
   type ProfileRef,
 } from '../utils/domParsers';
 import { getState, onStateChanged, type CuratorState } from '../utils/storage';
+import { debugLog, debugWarn } from '../utils/debug';
 
 const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
 
@@ -45,7 +46,6 @@ const OPTIONS_BUTTON_LABEL = 'Options';
  *  giving up: 15 attempts * 200ms = up to 3s, generous enough for a slow
  *  connection or a busy main thread. */
 const MENU_POLL_OPTIONS = { retries: 15, delayMs: 200 };
-const FADE_OUT_DURATION_MS = 250;
 
 let enabled = false;
 let observer: MutationObserver | null = null;
@@ -102,11 +102,11 @@ function showToast(message: string, variant: 'success' | 'error'): void {
  * right after the click is unreliable.
  */
 async function waitFor<T>(
-  getValue: () => T | null | undefined,
+  getValue: () => T | null | undefined | Promise<T | null | undefined>,
   { retries, delayMs }: { retries: number; delayMs: number },
 ): Promise<T | null> {
   for (let attempt = 0; attempt < retries; attempt++) {
-    const value = getValue();
+    const value = await getValue();
     if (value) return value;
     await sleep(delayMs);
   }
@@ -158,31 +158,31 @@ function activateMenuItem(item: HTMLElement): void {
  * follow this person), we leave the post untouched.
  */
 async function performUnfollow(profile: ProfileRef, postContainer: Element): Promise<void> {
-  console.log(`${LOG_PREFIX} performUnfollow: starting for`, profile);
+  await debugLog(`${LOG_PREFIX} performUnfollow: starting for`, profile);
 
   const menuButton = findOpenPostMenuButton(postContainer);
   if (!menuButton) {
-    console.warn(`${LOG_PREFIX} performUnfollow: could not find the "..." menu button for`, profile);
+    await debugWarn(`${LOG_PREFIX} performUnfollow: could not find the "..." menu button for`, profile);
     return;
   }
 
   menuButton.click();
 
-  const unfollowItem = await waitFor(() => {
-    const item = findUnfollowMenuItem(document, profile.name);
+  const unfollowItem = await waitFor(async () => {
+    const item = await findUnfollowMenuItem(document, profile.name);
     if (!item) return null;
     const rect = item.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0 ? item : null;
   }, MENU_POLL_OPTIONS);
   if (!unfollowItem) {
-    console.warn(`${LOG_PREFIX} performUnfollow: "Ne plus suivre ${profile.name}" never appeared; aborting`);
+    await debugWarn(`${LOG_PREFIX} performUnfollow: "Ne plus suivre ${profile.name}" never appeared; aborting`);
     return;
   }
 
   // The popover drops clicks that arrive in the same turn it mounts.
   await sleep(100);
   activateMenuItem(unfollowItem);
-  console.log(`${LOG_PREFIX} performUnfollow: clicked "Ne plus suivre ${profile.name}"`);
+  await debugLog(`${LOG_PREFIX} performUnfollow: clicked "Ne plus suivre ${profile.name}"`);
 
   await fadeOutAndHide(postContainer);
 }
@@ -193,17 +193,9 @@ async function performUnfollow(profile: ProfileRef, postContainer: Element): Pro
  * animation style, not whether the post actually gets hidden.
  */
 async function fadeOutAndHide(postContainer: Element): Promise<void> {
-  const state = await getState();
   const el = postContainer as HTMLElement;
-
-  if (state.enableFadeAnimation) {
-    el.style.transition = `opacity ${FADE_OUT_DURATION_MS}ms ease`;
-    el.style.opacity = '0';
-    await sleep(FADE_OUT_DURATION_MS);
-  }
-
   el.style.display = 'none';
-  console.log(`${LOG_PREFIX} fadeOutAndHide: hidden post (animated=${state.enableFadeAnimation})`);
+  await debugLog(`${LOG_PREFIX} fadeOutAndHide: hidden post`);
 }
 
 // --- Cross-tab "Block" flow -------------------------------------------------
@@ -221,14 +213,14 @@ async function performBlock(
   blockButton: HTMLButtonElement,
 ): Promise<void> {
   const requestId = generateRequestId();
-  console.log(`${LOG_PREFIX} performBlock: requesting block for "${name}" (${requestId})`, profileUrl);
+  await debugLog(`${LOG_PREFIX} performBlock: requesting block for "${name}" (${requestId})`, profileUrl);
   pendingBlockRequests.set(requestId, { postContainer, blockButton });
   setBlockButtonBusy(blockButton, true);
 
   try {
     await chrome.runtime.sendMessage({ type: 'BLOCK_PROFILE_REQUEST', requestId, profileUrl, name });
   } catch (error) {
-    console.warn(`${LOG_PREFIX} performBlock: failed to reach background`, error);
+    await debugWarn(`${LOG_PREFIX} performBlock: failed to reach background`, error);
     pendingBlockRequests.delete(requestId);
     setBlockButtonBusy(blockButton, false);
     showToast('Block failed to start', 'error');
@@ -240,16 +232,16 @@ async function handleBlockProfileResult(requestId: string, success: boolean, rea
   pendingBlockRequests.delete(requestId);
 
   if (!pending) {
-    console.warn(`${LOG_PREFIX} handleBlockProfileResult: no pending request for ${requestId}`);
+    await debugWarn(`${LOG_PREFIX} handleBlockProfileResult: no pending request for ${requestId}`);
     return;
   }
 
   if (success) {
-    console.log(`${LOG_PREFIX} handleBlockProfileResult: success (${requestId})`);
+    await debugLog(`${LOG_PREFIX} handleBlockProfileResult: success (${requestId})`);
     showToast('Blocked successfully', 'success');
     await fadeOutAndHide(pending.postContainer);
   } else {
-    console.warn(`${LOG_PREFIX} handleBlockProfileResult: failed (${requestId})`, reason);
+    await debugWarn(`${LOG_PREFIX} handleBlockProfileResult: failed (${requestId})`, reason);
     setBlockButtonBusy(pending.blockButton, false);
     showToast('Block failed', 'error');
   }
@@ -400,20 +392,20 @@ function buildUnfollowButton(postContainer: Element, profile: ProfileRef): HTMLB
     'user-minus',
     `Ne plus suivre ${profile.name}`,
     async () => {
-      console.log(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
+      await debugLog(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
       await performUnfollow(profile, postContainer);
     },
   );
 }
 
-function buildBlockButton(postContainer: Element, profile: ProfileRef): HTMLButtonElement {
+async function buildBlockButton(postContainer: Element, profile: ProfileRef): Promise<HTMLButtonElement> {
   const button = buildOwnedToolbarButton(
     'ban',
     `Bloquer ${profile.name}`,
     async (blockButton) => {
       const profileUrl = profile.profileUrl;
       if (!profileUrl) return;
-      console.log(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
+      await debugLog(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
       await performBlock(profile.name, profileUrl, postContainer, blockButton);
     },
     true,
@@ -422,7 +414,7 @@ function buildBlockButton(postContainer: Element, profile: ProfileRef): HTMLButt
   if (!profile.profileUrl) {
     button.disabled = true;
     button.title = 'Missing profile URL for this post';
-    console.warn(`${LOG_PREFIX} "Block" disabled: missing profile URL for`, profile.name);
+    await debugWarn(`${LOG_PREFIX} "Block" disabled: missing profile URL for`, profile.name);
   }
   return button;
 }
@@ -470,14 +462,14 @@ function appendToolbarGroup(toolbar: HTMLElement, buttons: HTMLElement[]): void 
   toolbar.append(group);
 }
 
-function injectActionButtons(
+async function injectActionButtons(
   postContainer: Element,
   headerElement: Element,
   profile: ProfileRef,
   markerId: string,
   includeUnfollow: boolean,
   pinToCardCorner: boolean,
-): void {
+): Promise<void> {
   if (headerElement.querySelector(`[${INJECTED_MARKER_ATTR}="${markerId}"]`)) {
     return; // already injected for this header
   }
@@ -523,7 +515,7 @@ function injectActionButtons(
   if (includeUnfollow) {
     ownedButtons.push(buildUnfollowButton(postContainer, profile));
   }
-  ownedButtons.push(buildBlockButton(postContainer, profile));
+  ownedButtons.push(await buildBlockButton(postContainer, profile));
   appendToolbarGroup(toolbar, nativeButtons);
   appendToolbarGroup(toolbar, ownedButtons);
 
@@ -531,12 +523,12 @@ function injectActionButtons(
     tagActionsLayoutHost(toolbar);
   }
 
-  console.log(`${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}, pinToCardCorner=${pinToCardCorner}) for`, profile);
+  await debugLog(`${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}, pinToCardCorner=${pinToCardCorner}) for`, profile);
 }
 
-function processParsedPost(parsed: ParsedLinkedInPost): void {
+async function processParsedPost(parsed: ParsedLinkedInPost): Promise<void> {
   if (parsed.author && parsed.authorElement && isPersonAuthor(parsed.author)) {
-    injectActionButtons(
+    await injectActionButtons(
       parsed.container,
       parsed.authorElement,
       parsed.author,
@@ -548,7 +540,7 @@ function processParsedPost(parsed: ParsedLinkedInPost): void {
 
   const isReshare = parsed.type === 'repost' || parsed.type === 'liked';
   if (isReshare && parsed.originalAuthor && parsed.originalAuthorElement && isPersonAuthor(parsed.originalAuthor)) {
-    injectActionButtons(
+    await injectActionButtons(
       parsed.container,
       parsed.originalAuthorElement,
       parsed.originalAuthor,
@@ -559,15 +551,18 @@ function processParsedPost(parsed: ParsedLinkedInPost): void {
   }
 }
 
-function processContainer(container: Element): void {
+async function processContainer(container: Element): Promise<void> {
   if (container.hasAttribute(PROCESSED_ATTR)) return;
   container.setAttribute(PROCESSED_ATTR, 'true');
-  processParsedPost(parseLinkedInPost(container));
+  await processParsedPost(await parseLinkedInPost(container));
 }
 
-function scanFeedForNewPosts(): void {
+async function scanFeedForNewPosts(): Promise<void> {
   if (!enabled) return;
-  findPostContainers(document).forEach(processContainer);
+  const containers = await findPostContainers(document);
+  for (const container of containers) {
+    await processContainer(container);
+  }
 }
 
 /**
@@ -580,11 +575,11 @@ function scheduleScan(): void {
   scanScheduled = true;
   queueMicrotask(() => {
     scanScheduled = false;
-    scanFeedForNewPosts();
+    void scanFeedForNewPosts();
   });
 }
 
-function removeInjectedButtons(): void {
+async function removeInjectedButtons(): Promise<void> {
   document.querySelectorAll(`.${TOOLBAR_CLASS}`).forEach((toolbar) => {
     const parent = toolbar.parentNode;
     toolbar.querySelectorAll(`.${TOOLBAR_BTN_CLASS}`).forEach((child) => {
@@ -605,38 +600,38 @@ function removeInjectedButtons(): void {
   document.querySelectorAll(`.${DIRECT_POST_CLASS}`).forEach((el) => el.classList.remove(DIRECT_POST_CLASS));
   document.querySelectorAll(`.${DIRECT_HEADER_CLASS}`).forEach((el) => el.classList.remove(DIRECT_HEADER_CLASS));
   document.querySelectorAll(`[${PROCESSED_ATTR}]`).forEach((el) => el.removeAttribute(PROCESSED_ATTR));
-  console.log(`${LOG_PREFIX} removed previously injected toolbars`);
+  await debugLog(`${LOG_PREFIX} removed previously injected toolbars`);
 }
 
-function startObserving(): void {
-  scanFeedForNewPosts();
+async function startObserving(): Promise<void> {
+  await scanFeedForNewPosts();
 
   if (observer) return;
   observer = new MutationObserver(() => scheduleScan());
   observer.observe(document.body, { childList: true, subtree: true });
-  console.log(`${LOG_PREFIX} started observing the feed for new posts`);
+  await debugLog(`${LOG_PREFIX} started observing the feed for new posts`);
 }
 
-function stopObserving(): void {
+async function stopObserving(): Promise<void> {
   observer?.disconnect();
   observer = null;
-  console.log(`${LOG_PREFIX} stopped observing the feed`);
+  await debugLog(`${LOG_PREFIX} stopped observing the feed`);
 }
 
-function applyEnabledState(nextEnabled: boolean): void {
+async function applyEnabledState(nextEnabled: boolean): Promise<void> {
   enabled = nextEnabled;
   if (enabled) {
-    startObserving();
+    await startObserving();
   } else {
-    stopObserving();
-    removeInjectedButtons();
+    await stopObserving();
+    await removeInjectedButtons();
   }
 }
 
 chrome.runtime.onMessage.addListener(
   (message: { type: string; state?: CuratorState; requestId?: string; success?: boolean; reason?: string }) => {
     if (message?.type === 'STATE_UPDATED' && message.state) {
-      applyEnabledState(message.state.enableButtonsInFeed);
+      void applyEnabledState(message.state.enableButtonsInFeed);
       return;
     }
 
@@ -647,12 +642,12 @@ chrome.runtime.onMessage.addListener(
 );
 
 onStateChanged((state) => {
-  applyEnabledState(state.enableButtonsInFeed);
+  void applyEnabledState(state.enableButtonsInFeed);
 });
 
 async function init(): Promise<void> {
   const state = await getState();
-  applyEnabledState(state.enableButtonsInFeed);
+  await applyEnabledState(state.enableButtonsInFeed);
 }
 
-init();
+void init();

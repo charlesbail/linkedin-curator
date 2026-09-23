@@ -19,6 +19,7 @@
  * locales/reaction verbs are observed.
  */
 import { normalizeText } from './parsing';
+import { debugLog, debugWarn } from './debug';
 
 const LOG_PREFIX = '[Aufwieder-zen:domParsers]';
 
@@ -171,7 +172,7 @@ function resolvePostRootFromHideButton(button: HTMLElement): Element | null {
  *   2. Elements reached by climbing up from a "hide this post" button
  *      (ARIA-label based, works even when no `role="listitem"` is present).
  */
-export function findPostContainers(root: ParentNode = document): Element[] {
+export async function findPostContainers(root: ParentNode = document): Promise<Element[]> {
   const containers = new Set<Element>();
 
   root.querySelectorAll('[role="listitem"]').forEach((el) => {
@@ -186,7 +187,7 @@ export function findPostContainers(root: ParentNode = document): Element[] {
   });
 
   const result = Array.from(containers);
-  console.log(`${LOG_PREFIX} findPostContainers: found ${result.length} candidate post container(s)`);
+  await debugLog(`${LOG_PREFIX} findPostContainers: found ${result.length} candidate post container(s)`);
   return result;
 }
 
@@ -274,9 +275,9 @@ function extractNameFromBlock(block: Element, anchor: HTMLAnchorElement | null):
   return candidates[0] ?? '';
 }
 
-function extractProfileRef(block: Element | null, label: string): ProfileRef | null {
+async function extractProfileRef(block: Element | null, label: string): Promise<ProfileRef | null> {
   if (!block) {
-    console.log(`${LOG_PREFIX} extractProfileRef: no "${label}" block found`);
+    await debugLog(`${LOG_PREFIX} extractProfileRef: no "${label}" block found`);
     return null;
   }
 
@@ -286,12 +287,12 @@ function extractProfileRef(block: Element | null, label: string): ProfileRef | n
   const kind = classifyAuthorUrl(profileUrl);
 
   if (!name && !profileUrl) {
-    console.warn(`${LOG_PREFIX} extractProfileRef: could not find "${label}" in block`, block);
+    await debugWarn(`${LOG_PREFIX} extractProfileRef: could not find "${label}" in block`, block);
     return null;
   }
 
   const ref: ProfileRef = { name, profileUrl, kind };
-  console.log(`${LOG_PREFIX} extractProfileRef: found ${label} ->`, ref);
+  await debugLog(`${LOG_PREFIX} extractProfileRef: found ${label} ->`, ref);
   return ref;
 }
 
@@ -307,41 +308,41 @@ export function isPersonAuthor(ref: ProfileRef | null): boolean {
  * comment"), or a Liked post ("X likes this"), based on the phrase next to
  * the actor's name in the header row.
  */
-export function identifyPostType(container: Element): PostType {
+export async function identifyPostType(container: Element): Promise<PostType> {
   const headerRow = getActorHeaderRow(container);
   if (!headerRow) {
-    console.warn(`${LOG_PREFIX} identifyPostType: no header row found; type is unknown`, container);
+    await debugWarn(`${LOG_PREFIX} identifyPostType: no header row found; type is unknown`, container);
     return 'unknown';
   }
 
   const headerText = normalizeText(headerRow.textContent ?? '');
 
   if (matchesAny(headerText, REPOST_TEXT_PATTERNS)) {
-    console.log(`${LOG_PREFIX} identifyPostType: detected "repost"`);
+    await debugLog(`${LOG_PREFIX} identifyPostType: detected "repost"`);
     return 'repost';
   }
 
   if (matchesAny(headerText, LIKED_TEXT_PATTERNS)) {
-    console.log(`${LOG_PREFIX} identifyPostType: detected "liked"`);
+    await debugLog(`${LOG_PREFIX} identifyPostType: detected "liked"`);
     return 'liked';
   }
 
-  console.log(`${LOG_PREFIX} identifyPostType: no repost/liked phrase found; defaulting to "direct"`);
+  await debugLog(`${LOG_PREFIX} identifyPostType: no repost/liked phrase found; defaulting to "direct"`);
   return 'direct';
 }
 
 /** Extracts the header-row author: the post's own author for Direct
  *  posts, or the person who reposted/liked/commented otherwise. */
-export function extractAuthor(container: Element): ProfileRef | null {
+export async function extractAuthor(container: Element): Promise<ProfileRef | null> {
   const headerRow = getActorHeaderRow(container);
-  return extractProfileRef(headerRow, 'author');
+  return await extractProfileRef(headerRow, 'author');
 }
 
 /** Extracts the original post's author for Repost/Liked posts. Returns
  *  null for Direct posts (there is no separate original author). */
-export function extractOriginalAuthor(container: Element): ProfileRef | null {
+export async function extractOriginalAuthor(container: Element): Promise<ProfileRef | null> {
   const originalAuthorRow = getOriginalAuthorHeaderRow(container);
-  return extractProfileRef(originalAuthorRow, 'original author');
+  return await extractProfileRef(originalAuthorRow, 'original author');
 }
 
 /** Matches LinkedIn's "Unfollow" item inside a post's "..." command menu
@@ -375,7 +376,7 @@ function unfollowNamesMatch(menuName: string, personName: string): boolean {
  * the actor or the original author, so we match by name rather than
  * position.
  */
-export function findUnfollowMenuItem(root: ParentNode, personName: string): HTMLElement | null {
+export async function findUnfollowMenuItem(root: ParentNode, personName: string): Promise<HTMLElement | null> {
   const candidates = Array.from(root.querySelectorAll<HTMLElement>('[role="menuitem"]'))
     .map((item) => ({ item, menuName: menuItemUnfollowName(item) }))
     .filter((entry): entry is { item: HTMLElement; menuName: string } => entry.menuName !== null);
@@ -388,11 +389,11 @@ export function findUnfollowMenuItem(root: ParentNode, personName: string): HTML
     null;
 
   if (match) {
-    console.log(
+    await debugLog(
       `${LOG_PREFIX} findUnfollowMenuItem: found "Ne plus suivre" item for "${personName}" -> "${normalizeText(match.textContent ?? '')}"`,
     );
   } else if (candidates.length > 0) {
-    console.warn(
+    await debugWarn(
       `${LOG_PREFIX} findUnfollowMenuItem: found "Ne plus suivre" item(s) but none matched "${personName}"`,
       candidates.map((entry) => normalizeText(entry.item.textContent ?? '')),
     );
@@ -407,14 +408,14 @@ export function findUnfollowMenuItem(root: ParentNode, personName: string): HTML
  * entry point content scripts should call once they have a candidate
  * element (e.g. from `findPostContainers`).
  */
-export function parseLinkedInPost(container: Element): ParsedLinkedInPost {
-  const type = identifyPostType(container);
+export async function parseLinkedInPost(container: Element): Promise<ParsedLinkedInPost> {
+  const type = await identifyPostType(container);
   const authorElement = getActorHeaderRow(container);
-  const author = extractProfileRef(authorElement, 'author');
+  const author = await extractProfileRef(authorElement, 'author');
 
   const isReshare = type === 'repost' || type === 'liked';
   const originalAuthorElement = isReshare ? getOriginalAuthorHeaderRow(container) : null;
-  const originalAuthor = isReshare ? extractProfileRef(originalAuthorElement, 'original author') : null;
+  const originalAuthor = isReshare ? await extractProfileRef(originalAuthorElement, 'original author') : null;
 
   const parsed: ParsedLinkedInPost = {
     type,
@@ -424,6 +425,6 @@ export function parseLinkedInPost(container: Element): ParsedLinkedInPost {
     originalAuthor,
     originalAuthorElement,
   };
-  console.log(`${LOG_PREFIX} parseLinkedInPost: parsed post ->`, parsed);
+  await debugLog(`${LOG_PREFIX} parseLinkedInPost: parsed post ->`, parsed);
   return parsed;
 }

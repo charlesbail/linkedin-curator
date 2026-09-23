@@ -9,8 +9,6 @@
 export interface CuratorState {
   /** Injects quick-action buttons onto feed posts. */
   enableButtonsInFeed: boolean;
-  /** Animates removed/hidden posts with a fade-out instead of an instant cut. */
-  enableFadeAnimation: boolean;
   /**
    * Shows the Block button on the original-author row of a repost or like.
    * The actor's own row is unaffected. Visibility is CSS on the injected toolbar.
@@ -21,13 +19,15 @@ export interface CuratorState {
    * Applied in CSS via flex-direction; the DOM order stays unchanged.
    */
   reverseToolbarOrder: boolean;
+  /** Enables console logs and debug helpers throughout the extension. */
+  debugMode: boolean;
 }
 
 export const DEFAULT_STATE: CuratorState = {
   enableButtonsInFeed: true,
-  enableFadeAnimation: true,
   enableBlockOnOriginalAuthor: true,
   reverseToolbarOrder: false,
+  debugMode: false,
 };
 
 const STORAGE_KEY = 'curatorState';

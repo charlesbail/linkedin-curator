@@ -90,7 +90,30 @@ logic, split it: parsing goes in `utils`, DOM glue stays in
 - Do not add bundler plugins for frameworks (React/Vue/Svelte plugins, JSX
   transforms) since none are used in this project.
 
-## 6. General Conventions
+## 6. Debug Logging Pattern
+
+- **Always use debug wrappers for logging**, never call `console.log`,
+  `console.warn`, or `console.error` directly. All console output must be
+  controlled by the user-facing Debug Mode toggle in the popup.
+- In most files, import and use `debugLog`, `debugWarn`, and `debugError` from
+  `src/utils/debug.ts`. These are async functions that check the `debugMode`
+  state from `chrome.storage.local` before emitting console output.
+- **Exception: `blockAutomation.ts`** — Since this file is injected as a
+  standalone function via `chrome.scripting.executeScript`, it cannot import
+  modules. Instead, it declares inline `debugLog` and `debugWarn` helper
+  functions at the top of `runBlockAutomation` that read `debugMode` from
+  `chrome.storage.local` directly and conditionally call `console.*` methods.
+- When adding or modifying logging statements:
+  - Use `await debugLog(...)` for informational messages.
+  - Use `await debugWarn(...)` for warnings.
+  - Use `await debugError(...)` for errors.
+  - In synchronous contexts where `await` is not allowed (e.g. event
+    listeners, callbacks), use `void debugLog(...)` to fire-and-forget.
+- Prefix all log messages with a consistent `LOG_PREFIX` constant (e.g.
+  `[Aufwieder-zen:moduleName]`) to identify the source module in console
+  output.
+
+## 7. General Conventions
 
 - Prefer named exports over default exports for utils and shared modules.
 - Keep DOM selectors for LinkedIn's feed centralized (e.g. a constants file in
