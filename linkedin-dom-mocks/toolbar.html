@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <title>Aufwieder-zen header toolbar</title>
+  <link rel="stylesheet" href="../src/content_scripts/content.css" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #f3f2ef;
+      padding: 24px;
+      color: #191919;
+    }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    p.note { font-size: 13px; color: #666; margin: 0 0 20px; }
+    .case {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .case h2 { font-size: 13px; margin: 0 0 12px; color: #666; font-weight: 600; }
+
+    .header-row {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .card {
+      position: relative;
+      min-height: 120px;
+    }
+
+    .follow-host {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    button.linkedin-follow {
+      border: 0;
+      background: transparent;
+      color: #0a66c2;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 6px 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Header toolbar</h1>
+  <p class="note">Same 4-icon bar on Post and Repost actor headers. Hover a cell for the background change.</p>
+
+  <div class="case card aufwiederzen-post--direct">
+    <h2>Direct post — toolbar pinned to card corner</h2>
+    <div class="header-row aufwiederzen-direct-header">
+      <span class="header-text">Dan Saffer • Suivi<br>Designer. Author. Assistant Professor of The Practice at CMU HCII</span>
+    </div>
+    <div class="aufwiederzen-toolbar aufwiederzen-toolbar--direct" data-aufwiederzen-injected-for="author">
+      <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Ouvrir le menu de commandes" title="Ouvrir le menu de commandes">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </button>
+      <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Masquer le post" title="Masquer le post">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+      <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Unfollow" title="Unfollow">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+      </button>
+      <button type="button" class="aufwiederzen-toolbar-btn aufwiederzen-toolbar-btn--danger" aria-label="Block" title="Block">
+        <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="case">
+    <h2>Repost / liked header</h2>
+    <div class="header-row aufwiederzen-actions-host">
+      <span class="header-text">Emmanuel Julliot adore ce contenu</span>
+      <div class="aufwiederzen-toolbar" data-aufwiederzen-injected-for="author">
+        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Ouvrir le menu de commandes">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Masquer le post">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Unfollow">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+        </button>
+        <button type="button" class="aufwiederzen-toolbar-btn aufwiederzen-toolbar-btn--danger" aria-label="Block">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="case">
+    <h2>Original-author row (Follow/Connect + Block only)</h2>
+    <div class="header-row aufwiederzen-actions-host">
+      <span class="header-text">Victor Lignel</span>
+      <div class="follow-host">
+        <button class="linkedin-follow" type="button">Se connecter</button>
+      </div>
+      <div class="aufwiederzen-toolbar" data-aufwiederzen-injected-for="originalAuthor">
+        <button type="button" class="aufwiederzen-toolbar-btn aufwiederzen-toolbar-btn--danger" aria-label="Block">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="case">
+    <h2>Block in progress — spinner replaces the ban icon</h2>
+    <div class="header-row aufwiederzen-actions-host">
+      <span class="header-text">Dan Saffer • Suivi</span>
+      <div class="aufwiederzen-toolbar" data-aufwiederzen-injected-for="author">
+        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Ouvrir le menu de commandes">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Masquer le post">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+        <button type="button" class="aufwiederzen-toolbar-btn" aria-label="Unfollow">
+          <svg data-aufwiederzen-icon viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+        </button>
+        <button type="button" class="aufwiederzen-toolbar-btn aufwiederzen-toolbar-btn--danger aufwiederzen-toolbar-btn--busy" aria-label="Block" aria-busy="true" disabled>
+          <svg data-aufwiederzen-icon class="aufwiederzen-spinner" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -11,11 +11,17 @@ export interface CuratorState {
   enableButtonsInFeed: boolean;
   /** Animates removed/hidden posts with a fade-out instead of an instant cut. */
   enableFadeAnimation: boolean;
+  /**
+   * Shows the Block button on the original-author row of a repost or like.
+   * The actor's own row is unaffected. Visibility is CSS on the injected toolbar.
+   */
+  enableBlockOnOriginalAuthor: boolean;
 }
 
 export const DEFAULT_STATE: CuratorState = {
   enableButtonsInFeed: true,
   enableFadeAnimation: true,
+  enableBlockOnOriginalAuthor: true,
 };
 
 const STORAGE_KEY = 'curatorState';

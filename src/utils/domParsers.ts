@@ -130,6 +130,15 @@ export function findOpenPostMenuButton(root: ParentNode): HTMLElement | null {
 }
 
 /**
+ * Finds the "Masquer le post de {name}" (hide) button, scoped to a post
+ * container or header row. Exported so feedInjector can adopt the native
+ * control into the shared header toolbar without duplicating ARIA matching.
+ */
+export function findHidePostButton(root: ParentNode): HTMLElement | null {
+  return findHidePostButtons(root)[0] ?? null;
+}
+
+/**
  * Climbs from a "hide this post" button to the post's root container.
  *
  * Prefers the nearest `role="listitem"` ancestor — LinkedIn's own
