@@ -12,11 +12,13 @@ import { getState, onStateChanged, type CuratorState } from '../utils/storage';
 const BUTTONS_ATTR = 'data-aufwiederzen-buttons-enabled';
 const FADE_ATTR = 'data-aufwiederzen-fade-enabled';
 const ORIGINAL_AUTHOR_BLOCK_ATTR = 'data-aufwiederzen-original-author-block-enabled';
+const TOOLBAR_REVERSED_ATTR = 'data-aufwiederzen-toolbar-reversed';
 
 function applyState(state: CuratorState): void {
   document.documentElement.setAttribute(BUTTONS_ATTR, String(state.enableButtonsInFeed));
   document.documentElement.setAttribute(FADE_ATTR, String(state.enableFadeAnimation));
   document.documentElement.setAttribute(ORIGINAL_AUTHOR_BLOCK_ATTR, String(state.enableBlockOnOriginalAuthor));
+  document.documentElement.setAttribute(TOOLBAR_REVERSED_ATTR, String(state.reverseToolbarOrder));
 }
 
 chrome.runtime.onMessage.addListener((message: { type: string; state?: CuratorState }) => {
