@@ -75,11 +75,8 @@ const REPOST_TEXT_PATTERNS = [
 
 const LIKED_TEXT_PATTERNS = [
   /aime\s+ce/i, // matches: "aime ce contenu", "aime cela", "aime ceci"
-  /trouve\s+ce.*?pertinent/i, // matches: "trouve ce... pertinent"
-  /trouve\s+ce.*?dr[ôo]le/i, // matches: "trouve ce... drôle/drole"
-  /trouve\s+ce.*?inspirant/i, // matches: "trouve ce... inspirant"
-  /trouve\s+ce.*?instructif/i, // matches: "trouve ce contenu instructif"
-  /c[ée]l[èe]bre\s+ce(ci|la|contenu)?/i, // matches: "célèbre ceci", "célèbre cela", "célèbre ce contenu"
+  /trouve\s+ce/i, // matches: "trouve ce contenu instructif", "trouve ce pertinent", etc.
+  /c[ée]l[èe]bre\s+ce/i, // matches: "célèbre ceci", "célèbre cela", "célèbre ce contenu"
   /soutient\s+ce/i, // matches: "soutient ce contenu", "soutient cela", "soutient ceci"
   /adore\s+ce/i, // matches: "adore ce contenu", "adore cela", "adore ceci"
 ];
