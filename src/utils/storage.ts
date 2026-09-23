@@ -16,12 +16,18 @@ export interface CuratorState {
    * The actor's own row is unaffected. Visibility is CSS on the injected toolbar.
    */
   enableBlockOnOriginalAuthor: boolean;
+  /**
+   * Swaps the two toolbar button groups. The header row is unchanged.
+   * Applied in CSS via flex-direction; the DOM order stays unchanged.
+   */
+  reverseToolbarOrder: boolean;
 }
 
 export const DEFAULT_STATE: CuratorState = {
   enableButtonsInFeed: true,
   enableFadeAnimation: true,
   enableBlockOnOriginalAuthor: true,
+  reverseToolbarOrder: false,
 };
 
 const STORAGE_KEY = 'curatorState';

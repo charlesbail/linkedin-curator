@@ -192,6 +192,12 @@ html[data-aufwiederzen-original-author-block-enabled='false']
   align-items: center !important;
 }
 
+/* Popup "Reverse Toolbar Order". Swaps the two button groups only.
+   The header row (avatar, name, Follow) stays in place. */
+html[data-aufwiederzen-toolbar-reversed='true'] .aufwiederzen-toolbar {
+  flex-direction: row-reverse;
+}
+
 /* Toast notifications (feedInjector.ts) reporting async action
    success/failure. Fixed to the viewport, top-left, with a maxed-out
    z-index so they sit above LinkedIn's own overlays/popovers. */
