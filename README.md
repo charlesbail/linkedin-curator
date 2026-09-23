@@ -45,6 +45,10 @@ npm run build
 Outputs a production build to `dist/`, ready to load unpacked or zip for the
 Chrome Web Store.
 
+## Translations
+
+Phrases and UI copy live in `src/utils/linkedinPhrases.ts`. Regenerate the Google Sheets file with `npm run export:csv`. See [TRANSLATIONS.md](TRANSLATIONS.md) for adding a language.
+
 ## Type checking
 
 ```bash
