@@ -26,6 +26,7 @@ const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
 const PROCESSED_ATTR = 'data-aufwiederzen-injector-processed';
 const INJECTED_MARKER_ATTR = 'data-aufwiederzen-injected-for';
 const TOOLBAR_CLASS = 'aufwiederzen-toolbar';
+const TOOLBAR_GROUP_CLASS = 'aufwiederzen-toolbar-group';
 const DIRECT_TOOLBAR_CLASS = 'aufwiederzen-toolbar--direct';
 const DIRECT_POST_CLASS = 'aufwiederzen-post--direct';
 const DIRECT_HEADER_CLASS = 'aufwiederzen-direct-header';
@@ -447,6 +448,14 @@ function tagActionsLayoutHost(start: HTMLElement): void {
   }
 }
 
+function appendToolbarGroup(toolbar: HTMLElement, buttons: HTMLElement[]): void {
+  if (buttons.length === 0) return;
+  const group = document.createElement('div');
+  group.className = TOOLBAR_GROUP_CLASS;
+  group.append(...buttons);
+  toolbar.append(group);
+}
+
 function injectActionButtons(
   postContainer: Element,
   headerElement: Element,
@@ -487,18 +496,22 @@ function injectActionButtons(
     }
   }
 
+  const nativeButtons: HTMLElement[] = [];
   if (menuButton) {
     adoptNativeToolbarButton(menuButton, 'more-horizontal');
-    toolbar.append(menuButton);
+    nativeButtons.push(menuButton);
   }
   if (hideButton) {
     adoptNativeToolbarButton(hideButton, 'x');
-    toolbar.append(hideButton);
+    nativeButtons.push(hideButton);
   }
+  const ownedButtons: HTMLElement[] = [];
   if (includeUnfollow) {
-    toolbar.append(buildUnfollowButton(postContainer, profile));
+    ownedButtons.push(buildUnfollowButton(postContainer, profile));
   }
-  toolbar.append(buildBlockButton(postContainer, profile));
+  ownedButtons.push(buildBlockButton(postContainer, profile));
+  appendToolbarGroup(toolbar, nativeButtons);
+  appendToolbarGroup(toolbar, ownedButtons);
 
   if (!pinToCardCorner) {
     tagActionsLayoutHost(toolbar);
@@ -560,7 +573,7 @@ function scheduleScan(): void {
 function removeInjectedButtons(): void {
   document.querySelectorAll(`.${TOOLBAR_CLASS}`).forEach((toolbar) => {
     const parent = toolbar.parentNode;
-    Array.from(toolbar.children).forEach((child) => {
+    toolbar.querySelectorAll(`.${TOOLBAR_BTN_CLASS}`).forEach((child) => {
       if (!(child instanceof HTMLElement)) {
         child.remove();
         return;
