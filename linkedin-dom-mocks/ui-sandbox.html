@@ -68,8 +68,15 @@
       font-size: 13px;
       color: #00000099;
       padding-bottom: 8px;
-      border-bottom: 1px solid #e0e0e0;
-      margin-bottom: 12px;
+    }
+
+    /* Stand-in for LinkedIn's inset reshare rule before content.css. */
+    hr[role='presentation'] {
+      width: 80%;
+      margin: 12px 16px;
+      border: 0;
+      border-top: 1px solid #e0e0e0;
+      height: 1px;
     }
 
     .interactor-header a,
@@ -373,7 +380,7 @@ The AI Widgets group has been researching widgets to add AI intelligence to. All
     </div>
 
     <!-- ==================== CASE 2: REPOST ==================== -->
-    <div class="post-card" data-post-type="repost">
+    <div class="post-card" data-post-type="repost" data-aufwiederzen-injector-processed="true">
       <!-- Reposter Header -->
       <div class="reposter-header aufwiederzen-actions-host">
         <div class="profile-image profile-image-small">AH</div>
@@ -397,6 +404,8 @@ The AI Widgets group has been researching widgets to add AI intelligence to. All
           </button>
         </div>
       </div>
+
+      <hr role="presentation" />
 
       <!-- Original Author Header -->
       <div class="author-header aufwiederzen-actions-host" style="align-items: center;">
@@ -455,7 +464,7 @@ Check out the details in the link below and let us know what you think!</div>
     </div>
 
     <!-- ==================== CASE 3: LIKED POST ==================== -->
-    <div class="post-card" data-post-type="liked">
+    <div class="post-card" data-post-type="liked" data-aufwiederzen-injector-processed="true">
       <!-- Interactor Header (person who liked) -->
       <div class="interactor-header aufwiederzen-actions-host">
         <div class="profile-image profile-image-small">CB</div>
@@ -479,6 +488,8 @@ Check out the details in the link below and let us know what you think!</div>
           </button>
         </div>
       </div>
+
+      <hr role="presentation" />
 
       <!-- Original Author Header -->
       <div class="author-header aufwiederzen-actions-host" style="align-items: center;">

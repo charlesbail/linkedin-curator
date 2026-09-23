@@ -25,14 +25,29 @@ html[data-aufwiederzen-original-author-block-enabled='false']
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 4px;
   background-color: #ffffff;
+  margin-right: 8px;
+}
+
+/* Block control on the original post inside a repost or liked post.
+   Sits after Follow/Connect, flush with the card edge unless inset. */
+[data-aufwiederzen-injected-for='originalAuthor'].aufwiederzen-toolbar {
   margin-right: 4px;
+}
+
+/* Native divider between the actor line and the original post. LinkedIn
+   only renders this on liked posts and reposts. Hashed utility classes
+   inset it; role="presentation" is the stable hook, and !important beats
+   those utilities. Scoped to posts the injector has already marked. */
+[data-aufwiederzen-injector-processed] hr[role='presentation'] {
+  width: 100% !important;
+  margin: 0 !important;
 }
 
 /* Direct posts: pin the toolbar to the card's top-right. Tweak the two
    offset variables — they also drive header padding so the name never
    runs under the bar. */
 .aufwiederzen-post--direct {
-  --aufwiederzen-toolbar-offset-top: 8px;
+  --aufwiederzen-toolbar-offset-top: 4px;
   --aufwiederzen-toolbar-offset-right: 8px;
   --aufwiederzen-toolbar-header-gap: 8px;
   position: relative;
