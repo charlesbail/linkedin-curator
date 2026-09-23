@@ -21,7 +21,7 @@ import {
   type ParsedLinkedInPost,
   type ProfileRef,
 } from '../utils/domParsers';
-import { isLinkedInFeedUrl } from '../utils/parsing';
+import { isLinkedInFeedUrl, profilePathForLog } from '../utils/parsing';
 import { resolveUiLocale, translate, type Locale } from '../utils/linkedinPhrases';
 import { getState, onStateChanged, type CuratorState } from '../utils/storage';
 import { debugLog, debugWarn } from '../utils/debug';
@@ -177,11 +177,19 @@ function activateMenuItem(item: HTMLElement): void {
  * follow this person), we leave the post untouched.
  */
 async function performUnfollow(profile: ProfileRef, postContainer: Element): Promise<void> {
-  await debugLog(`${LOG_PREFIX} performUnfollow: starting for`, profile);
+  await debugLog(
+    `${LOG_PREFIX} performUnfollow: starting for`,
+    profile.name,
+    profilePathForLog(profile.profileUrl),
+  );
 
   const menuButton = findOpenPostMenuButton(postContainer);
   if (!menuButton) {
-    await debugWarn(`${LOG_PREFIX} performUnfollow: could not find the "..." menu button for`, profile);
+    await debugWarn(
+      `${LOG_PREFIX} performUnfollow: could not find the "..." menu button for`,
+      profile.name,
+      profilePathForLog(profile.profileUrl),
+    );
     return;
   }
 
@@ -232,7 +240,10 @@ async function performBlock(
   blockButton: HTMLButtonElement,
 ): Promise<void> {
   const requestId = generateRequestId();
-  await debugLog(`${LOG_PREFIX} performBlock: requesting block for "${name}" (${requestId})`, profileUrl);
+  await debugLog(
+    `${LOG_PREFIX} performBlock: requesting block for "${name}" (${requestId})`,
+    profilePathForLog(profileUrl),
+  );
   pendingBlockRequests.set(requestId, { postContainer, blockButton });
   setBlockButtonBusy(blockButton, true);
 
@@ -440,7 +451,10 @@ function buildUnfollowButton(postContainer: Element, profile: ProfileRef): HTMLB
     'user-minus',
     translate('unfollowAction', uiLocale, { name: profile.name }),
     async () => {
-      await debugLog(`${LOG_PREFIX} Unfollow clicked for: "${profile.name}" | URL: ${profile.profileUrl ?? 'null'}`);
+      await debugLog(
+        `${LOG_PREFIX} Unfollow clicked for: "${profile.name}"`,
+        profilePathForLog(profile.profileUrl),
+      );
       await performUnfollow(profile, postContainer);
     },
   );
@@ -455,7 +469,7 @@ async function buildBlockButton(postContainer: Element, profile: ProfileRef): Pr
     async (blockButton) => {
       const profileUrl = profile.profileUrl;
       if (!profileUrl) return;
-      await debugLog(`${LOG_PREFIX} Block clicked for: "${profile.name}" | URL: ${profileUrl}`);
+      await debugLog(`${LOG_PREFIX} Block clicked for: "${profile.name}"`, profilePathForLog(profileUrl));
       await performBlock(profile.name, profileUrl, postContainer, blockButton);
     },
     true,
@@ -604,7 +618,11 @@ async function injectActionButtons(
     tagActionsLayoutHost(toolbar);
   }
 
-  await debugLog(`${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}, pinToCardCorner=${pinToCardCorner}) for`, profile);
+  await debugLog(
+    `${LOG_PREFIX} injected toolbar (${markerId}, includeUnfollow=${includeUnfollow}, pinToCardCorner=${pinToCardCorner})`,
+    profile.name,
+    profilePathForLog(profile.profileUrl),
+  );
 }
 
 async function processParsedPost(parsed: ParsedLinkedInPost): Promise<void> {
