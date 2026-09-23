@@ -5,12 +5,13 @@
  * worker to notify content scripts. Never touches the LinkedIn page DOM
  * directly.
  */
-import { getState, setState, type CuratorState } from '../utils/storage';
+import { getState, onStateChanged, setState, type CuratorState } from '../utils/storage';
 
 const buttonsToggle = document.getElementById('buttons-toggle') as HTMLButtonElement;
 const originalAuthorBlockToggle = document.getElementById('original-author-block-toggle') as HTMLButtonElement;
 const toolbarOrderToggle = document.getElementById('toolbar-order-toggle') as HTMLButtonElement;
 const debugToggle = document.getElementById('debug-toggle') as HTMLButtonElement;
+const blockedProfileCount = document.getElementById('blocked-profile-count') as HTMLSpanElement;
 
 function setSwitchChecked(toggle: HTMLButtonElement, checked: boolean): void {
   toggle.setAttribute('aria-checked', String(checked));
@@ -25,6 +26,7 @@ function renderState(state: CuratorState): void {
   setSwitchChecked(originalAuthorBlockToggle, state.enableBlockOnOriginalAuthor);
   setSwitchChecked(toolbarOrderToggle, state.reverseToolbarOrder);
   setSwitchChecked(debugToggle, state.debugMode);
+  blockedProfileCount.textContent = String(state.blockedProfileCount);
 }
 
 async function notifyContentScripts(): Promise<void> {
@@ -51,3 +53,4 @@ bindSwitch(toolbarOrderToggle, (checked) => ({ reverseToolbarOrder: checked }));
 bindSwitch(debugToggle, (checked) => ({ debugMode: checked }));
 
 getState().then(renderState);
+onStateChanged(renderState);

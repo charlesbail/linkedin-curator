@@ -10,7 +10,7 @@
  * page DOM automation lives in content_scripts/blockAutomation.ts.
  */
 import { runBlockAutomation } from '../content_scripts/blockAutomation';
-import { DEFAULT_STATE, getState, setState } from '../utils/storage';
+import { DEFAULT_STATE, getState, incrementBlockedProfileCount, setState } from '../utils/storage';
 import { debugLog, debugWarn } from '../utils/debug';
 
 const LOG_PREFIX = '[Aufwieder-zen:background]';
@@ -115,6 +115,10 @@ async function handleBlockProfileRequest(
 
     const success = result?.success ?? false;
     await debugLog(`${LOG_PREFIX} automation finished for "${name}" -> success=${success}`, result?.reason ?? '');
+
+    if (success) {
+      await incrementBlockedProfileCount();
+    }
 
     notifyFeedTab(feedTabId, {
       type: 'BLOCK_PROFILE_RESULT',

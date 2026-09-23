@@ -21,6 +21,8 @@ export interface CuratorState {
   reverseToolbarOrder: boolean;
   /** Enables console logs and debug helpers throughout the extension. */
   debugMode: boolean;
+  /** Number of profiles this extension has successfully blocked. */
+  blockedProfileCount: number;
 }
 
 export const DEFAULT_STATE: CuratorState = {
@@ -28,6 +30,7 @@ export const DEFAULT_STATE: CuratorState = {
   enableBlockOnOriginalAuthor: true,
   reverseToolbarOrder: false,
   debugMode: false,
+  blockedProfileCount: 0,
 };
 
 const STORAGE_KEY = 'curatorState';
@@ -42,6 +45,14 @@ export async function setState(patch: Partial<CuratorState>): Promise<CuratorSta
   const current = await getState();
   const next: CuratorState = { ...current, ...patch };
   await chrome.storage.local.set({ [STORAGE_KEY]: next });
+  return next;
+}
+
+/** Records one successful block in the persisted profile count. */
+export async function incrementBlockedProfileCount(): Promise<number> {
+  const current = await getState();
+  const next = current.blockedProfileCount + 1;
+  await setState({ blockedProfileCount: next });
   return next;
 }
 
