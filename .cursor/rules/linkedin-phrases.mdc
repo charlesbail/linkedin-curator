@@ -1,0 +1,23 @@
+---
+description: Enforces the use of linkedinPhrases.ts for all text, UI labels, and DOM matching strings.
+globs: "**/*.ts,**/*.html"
+alwaysApply: false
+---
+
+# LOCALIZATION & STRING PROTOCOL
+
+1. **Single Source of Truth:** The file `src/utils/linkedinPhrases.ts` is the absolute source of truth for all user-facing text, DOM text matching, UI labels, and translations.
+2. **No Hardcoding:** NEVER hardcode raw string literals for UI text or DOM queries (e.g., checking if an element contains "Aime" or "Ne plus suivre") directly in content scripts, parsers, or HTML files.
+3. **The Addition Workflow:** If a required text string or label does not currently exist in `linkedinPhrases.ts`, you MUST first navigate to that file, add the new string within the proper object structure (accounting for French/English where applicable), and export it.
+4. **Implementation:** Only after the string is properly set up in `linkedinPhrases.ts` may you import and reference that variable in your target file.
+
+`runBlockAutomation` is injected with `chrome.scripting.executeScript` and cannot import this module. Pass the phrases in as an argument from `blockAutomationPhrases()`; do not copy the literals into the function body.
+
+```typescript
+// ❌ BAD
+if (text.includes('Ne plus suivre')) { /* ... */ }
+
+// ✅ GOOD
+import { LINKEDIN_LOOKUPS, matchesLookup } from '../utils/linkedinPhrases';
+if (matchesLookup(text, LINKEDIN_LOOKUPS.unfollowMenu)) { /* ... */ }
+```
