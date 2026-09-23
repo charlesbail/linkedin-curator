@@ -7,7 +7,10 @@
  */
 
 export interface CuratorState {
-  /** Injects quick-action buttons onto feed posts. */
+  /**
+   * Shows Unfollow and Block on feed posts. The native "..." and hide
+   * controls stay either way. Visibility is CSS on the action group.
+   */
   enableButtonsInFeed: boolean;
   /**
    * Shows the Block button on the original-author row of a repost or like.

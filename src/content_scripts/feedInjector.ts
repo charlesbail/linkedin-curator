@@ -2,8 +2,10 @@
  * Content script: injects a shared icon toolbar into feed post headers
  * as the user scrolls. Native "..." / hide buttons are adopted into the
  * toolbar so they keep LinkedIn's behaviour; Unfollow / Block are ours.
- * Post classification lives in utils/domParsers.ts; on/off state lives
- * in utils/storage.ts.
+ * Post classification lives in utils/domParsers.ts. Unfollow/Block
+ * visibility is CSS on the action group (content.ts mirrors
+ * enableButtonsInFeed onto <html>); this file keeps "..." and hide in
+ * place either way.
  *
  * Block is cross-tab: this script only sends a request to background.ts
  * (which opens a temporary profile tab and drives the actual block flow
@@ -20,7 +22,6 @@ import {
   type ProfileRef,
 } from '../utils/domParsers';
 import { isLinkedInFeedUrl } from '../utils/parsing';
-import { getState, onStateChanged, type CuratorState } from '../utils/storage';
 import { debugLog, debugWarn } from '../utils/debug';
 
 const LOG_PREFIX = '[Aufwieder-zen:feedInjector]';
@@ -29,6 +30,8 @@ const PROCESSED_ATTR = 'data-aufwiederzen-injector-processed';
 const INJECTED_MARKER_ATTR = 'data-aufwiederzen-injected-for';
 const TOOLBAR_CLASS = 'aufwiederzen-toolbar';
 const TOOLBAR_GROUP_CLASS = 'aufwiederzen-toolbar-group';
+const TOOLBAR_NATIVE_GROUP_CLASS = 'aufwiederzen-toolbar-group--native';
+const TOOLBAR_ACTIONS_GROUP_CLASS = 'aufwiederzen-toolbar-group--actions';
 const DIRECT_TOOLBAR_CLASS = 'aufwiederzen-toolbar--direct';
 const DIRECT_POST_CLASS = 'aufwiederzen-post--direct';
 const DIRECT_HEADER_CLASS = 'aufwiederzen-direct-header';
@@ -48,7 +51,6 @@ const OPTIONS_BUTTON_LABEL = 'Options';
  *  connection or a busy main thread. */
 const MENU_POLL_OPTIONS = { retries: 15, delayMs: 200 };
 
-let enabled = false;
 let observer: MutationObserver | null = null;
 let scanScheduled = false;
 /** Bumped on every start/stop so an in-flight scan bails out after a navigation away from the feed. */
@@ -57,6 +59,11 @@ let observationGeneration = 0;
 /** Post containers awaiting a BLOCK_PROFILE_RESULT from background.ts,
  *  keyed by the requestId sent with the original BLOCK_PROFILE_REQUEST. */
 const pendingBlockRequests = new Map<string, { postContainer: Element; blockButton: HTMLButtonElement }>();
+
+/** Comment left in a native button's original slot. Direct-post toolbars
+ *  are pinned to the card, so putting "..." / hide back on the toolbar's
+ *  parent would make the next scan treat the whole card as the header. */
+const nativeButtonOrigins = new WeakMap<HTMLElement, Comment>();
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -457,10 +464,33 @@ function tagActionsLayoutHost(start: HTMLElement): void {
   }
 }
 
-function appendToolbarGroup(toolbar: HTMLElement, buttons: HTMLElement[]): void {
+function parkNativeButtonOrigin(button: HTMLElement): void {
+  if (nativeButtonOrigins.has(button)) return;
+  const parent = button.parentNode;
+  if (!parent) return;
+  const placeholder = document.createComment('aufwiederzen-native-origin');
+  parent.insertBefore(placeholder, button);
+  nativeButtonOrigins.set(button, placeholder);
+}
+
+function restoreNativeButtonPosition(button: HTMLElement, fallbackParent: Node | null, fallbackBefore: Node | null): void {
+  const placeholder = nativeButtonOrigins.get(button);
+  nativeButtonOrigins.delete(button);
+  if (placeholder?.parentNode) {
+    placeholder.parentNode.insertBefore(button, placeholder);
+    placeholder.remove();
+    return;
+  }
+  fallbackParent?.insertBefore(button, fallbackBefore);
+}
+
+function appendToolbarGroup(toolbar: HTMLElement, buttons: HTMLElement[], kind: 'native' | 'actions'): void {
   if (buttons.length === 0) return;
   const group = document.createElement('div');
-  group.className = TOOLBAR_GROUP_CLASS;
+  group.className =
+    kind === 'native'
+      ? `${TOOLBAR_GROUP_CLASS} ${TOOLBAR_NATIVE_GROUP_CLASS}`
+      : `${TOOLBAR_GROUP_CLASS} ${TOOLBAR_ACTIONS_GROUP_CLASS}`;
   group.append(...buttons);
   toolbar.append(group);
 }
@@ -490,7 +520,7 @@ async function injectActionButtons(
 
   if (pinToCardCorner) {
     postContainer.classList.add(DIRECT_POST_CLASS);
-    if (headerElement instanceof HTMLElement) {
+    if (headerElement instanceof HTMLElement && headerElement !== postContainer) {
       headerElement.classList.add(DIRECT_HEADER_CLASS);
     }
     postContainer.append(toolbar);
@@ -519,12 +549,14 @@ async function injectActionButtons(
     ownedButtons.push(buildUnfollowButton(postContainer, profile));
   }
   ownedButtons.push(await buildBlockButton(postContainer, profile));
-  if (!enabled || !isOnFeed() || !toolbar.isConnected) {
+  if (!isOnFeed() || !toolbar.isConnected) {
+    for (const button of nativeButtons) restoreNativeToolbarButton(button);
     toolbar.remove();
     return;
   }
-  appendToolbarGroup(toolbar, nativeButtons);
-  appendToolbarGroup(toolbar, ownedButtons);
+  for (const button of nativeButtons) parkNativeButtonOrigin(button);
+  appendToolbarGroup(toolbar, nativeButtons, 'native');
+  appendToolbarGroup(toolbar, ownedButtons, 'actions');
 
   if (!pinToCardCorner) {
     tagActionsLayoutHost(toolbar);
@@ -575,7 +607,7 @@ function isOnFeed(): boolean {
 }
 
 async function scanFeedForNewPosts(generation: number): Promise<void> {
-  if (!enabled || generation !== observationGeneration || !isOnFeed()) return;
+  if (generation !== observationGeneration || !isOnFeed()) return;
   const containers = await findPostContainers(document);
   for (const container of containers) {
     if (generation !== observationGeneration) return;
@@ -611,7 +643,7 @@ async function removeInjectedButtons(): Promise<void> {
         return;
       }
       restoreNativeToolbarButton(child);
-      parent?.insertBefore(child, toolbar);
+      restoreNativeButtonPosition(child, parent, toolbar);
     });
     toolbar.remove();
   });
@@ -646,7 +678,7 @@ async function stopObserving(): Promise<void> {
  */
 async function syncObservation(): Promise<void> {
   const generation = ++observationGeneration;
-  if (enabled && isOnFeed()) {
+  if (isOnFeed()) {
     await startObserving(generation);
     return;
   }
@@ -672,39 +704,17 @@ function watchClientNavigations(): void {
   window.addEventListener('popstate', onNavigate);
 }
 
-async function applyEnabledState(nextEnabled: boolean): Promise<void> {
-  enabled = nextEnabled;
-  if (enabled) {
-    await syncObservation();
-    return;
-  }
-  const generation = ++observationGeneration;
-  await stopObserving();
-  if (generation !== observationGeneration) return;
-  await removeInjectedButtons();
-}
-
 chrome.runtime.onMessage.addListener(
-  (message: { type: string; state?: CuratorState; requestId?: string; success?: boolean; reason?: string }) => {
-    if (message?.type === 'STATE_UPDATED' && message.state) {
-      void applyEnabledState(message.state.enableButtonsInFeed);
-      return;
-    }
-
+  (message: { type: string; requestId?: string; success?: boolean; reason?: string }) => {
     if (message?.type === 'BLOCK_PROFILE_RESULT' && message.requestId) {
       void handleBlockProfileResult(message.requestId, message.success ?? false, message.reason);
     }
   },
 );
 
-onStateChanged((state) => {
-  void applyEnabledState(state.enableButtonsInFeed);
-});
-
 async function init(): Promise<void> {
   watchClientNavigations();
-  const state = await getState();
-  await applyEnabledState(state.enableButtonsInFeed);
+  await syncObservation();
 }
 
 void init();
