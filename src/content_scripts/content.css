@@ -15,6 +15,19 @@ html[data-aufwiederzen-original-author-block-enabled='false']
   display: none;
 }
 
+/* "Enable Buttons in Feed" hides Unfollow/Block only. Adopted "..." and
+   hide controls stay put, so the switch does not move native buttons or
+   re-parse the header (that re-parse padded the whole card, including media).
+   A toolbar with no native group (original-author Block only) collapses. */
+html[data-aufwiederzen-buttons-enabled='false'] .aufwiederzen-toolbar-group--actions {
+  display: none;
+}
+
+html[data-aufwiederzen-buttons-enabled='false']
+  .aufwiederzen-toolbar:not(:has(.aufwiederzen-toolbar-group--native)) {
+  display: none;
+}
+
 .aufwiederzen-toolbar {
   display: inline-flex;
   flex-direction: row;
@@ -62,7 +75,14 @@ html[data-aufwiederzen-original-author-block-enabled='false']
   --aufwiederzen-toolbar-offset-top: 8px;
   --aufwiederzen-toolbar-offset-right: 8px;
   --aufwiederzen-toolbar-header-gap: 8px;
+  /* 2×(2×36px + 2px group border) + 8px gap between groups */
+  --aufwiederzen-toolbar-reserve: 156px;
   position: relative;
+}
+
+html[data-aufwiederzen-buttons-enabled='false'] .aufwiederzen-post--direct {
+  /* Native group only: 2×36px + 2px border */
+  --aufwiederzen-toolbar-reserve: 74px;
 }
 
 .aufwiederzen-toolbar--direct {
@@ -74,8 +94,10 @@ html[data-aufwiederzen-original-author-block-enabled='false']
 }
 
 .aufwiederzen-direct-header {
-  /* 2×(2×36px + 2px group border) + 8px gap between groups */
-  padding-right: calc(156px + var(--aufwiederzen-toolbar-offset-right) + var(--aufwiederzen-toolbar-header-gap));
+  padding-right: calc(
+    var(--aufwiederzen-toolbar-reserve) + var(--aufwiederzen-toolbar-offset-right) +
+      var(--aufwiederzen-toolbar-header-gap)
+  );
 }
 
 .aufwiederzen-toolbar-group > .aufwiederzen-toolbar-btn {
